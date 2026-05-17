@@ -4,6 +4,13 @@ All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
 
+## [0.1.30] - 2026-05-17
+- Tighten `--random high` to sample only from higher-scored results instead of weighting every result.
+- Exclude base score `10` items from high-confidence random selection.
+- Keep `--random low` as uniform selection across all results.
+- Add regression coverage for the high-confidence selection pool.
+- Bump project/package version to `0.1.30`.
+
 ## [0.1.29] - 2026-05-17
 - Change `--random` to high-confidence score-weighted selection by default.
 - Add explicit `--random high` and `--random low` modes.

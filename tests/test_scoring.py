@@ -1,5 +1,5 @@
 from plexmatch.models import Item, Match
-from plexmatch.scoring import pick_random_match, score_candidates, score_items
+from plexmatch.scoring import high_confidence_pool, pick_random_match, score_candidates, score_items
 
 
 def test_scoring_is_deterministic() -> None:
@@ -43,7 +43,8 @@ def test_candidate_scoring_adds_support_bonus() -> None:
 def test_high_confidence_random_uses_score_weights(monkeypatch) -> None:
     matches = [
         Match("k1", "Low", 2000, "movie", 10),
-        Match("k2", "High", 2001, "movie", 100),
+        Match("k2", "Medium", 2001, "movie", 70),
+        Match("k3", "High", 2002, "movie", 100),
     ]
     captured: dict[str, object] = {}
 
@@ -51,14 +52,15 @@ def test_high_confidence_random_uses_score_weights(monkeypatch) -> None:
         captured["population"] = population
         captured["weights"] = weights
         captured["k"] = k
-        return [population[1]]
+        return [population[0]]
 
     monkeypatch.setattr("plexmatch.scoring.random.choices", fake_choices)
 
     picked = pick_random_match(matches, "high")
 
     assert picked.title == "High"
-    assert captured["weights"] == [10, 100]
+    assert [match.title for match in captured["population"]] == ["High"]
+    assert captured["weights"] == [100]
     assert captured["k"] == 1
 
 
@@ -79,3 +81,16 @@ def test_low_confidence_random_ignores_score(monkeypatch) -> None:
 
     assert picked.title == "Low"
     assert captured["population"] == matches
+
+
+def test_high_confidence_pool_excludes_lowest_score_recommendations() -> None:
+    matches = [
+        Match("k1", "User A Only", 2000, "movie", 10),
+        Match("k2", "User B Only", 2001, "movie", 25),
+        Match("k3", "Overlap", 2002, "movie", 100),
+        Match("k4", "Supported Overlap", 2003, "movie", 110),
+    ]
+
+    pool = high_confidence_pool(matches)
+
+    assert [match.title for match in pool] == ["Overlap", "Supported Overlap"]

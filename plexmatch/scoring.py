@@ -5,7 +5,7 @@ from plexmatch.models import Item, Match
 
 SOURCE_SCORES = {
     "both": 100,
-    "user_b": 10,
+    "user_b": 25,
     "user_a": 10,
 }
 
@@ -42,6 +42,14 @@ def pick_random_match(matches: list[Match], mode: str = "high") -> Match:
     if mode == "low":
         return random.choice(matches)
     if mode == "high":
-        weights = [max(match.score, 1) for match in matches]
-        return random.choices(matches, weights=weights, k=1)[0]
+        pool = high_confidence_pool(matches)
+        weights = [max(match.score, 1) for match in pool]
+        return random.choices(pool, weights=weights, k=1)[0]
     raise ValueError(f"Unknown random mode: {mode}")
+
+
+def high_confidence_pool(matches: list[Match]) -> list[Match]:
+    if not matches:
+        return []
+    max_score = max(match.score for match in matches)
+    return [match for match in matches if match.score > 10 and match.score >= max_score * 0.75]
