@@ -1,8 +1,8 @@
 import argparse
+import importlib
 import os
 import random
 
-from dotenv import load_dotenv
 
 from plexmatch.api.graphql import PlexApi
 from plexmatch.matching import overlaps
@@ -11,7 +11,9 @@ from plexmatch.scoring import score_items
 
 
 def token_from_env_or_arg(arg_token: str | None) -> str:
-    load_dotenv()
+    if importlib.util.find_spec("dotenv"):
+        dotenv = importlib.import_module("dotenv")
+        dotenv.load_dotenv()
     token = arg_token or os.getenv("PLEX_TOKEN")
     if not token:
         raise ValueError("Missing Plex token. Set PLEX_TOKEN in environment/.env or pass --token.")
