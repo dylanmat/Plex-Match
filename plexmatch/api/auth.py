@@ -5,7 +5,7 @@ import time
 import uuid
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import urlencode
 
 import httpx
 import jwt
@@ -29,11 +29,17 @@ class PinAuthSession:
 
     @property
     def auth_url(self) -> str:
-        return (
-            "https://app.plex.tv/auth#?"
-            f"clientID={quote(self.client_identifier)}&code={quote(self.code)}"
-            "&context%5Bdevice%5D%5Bproduct%5D=PlexMatch&forwardUrl=https%3A%2F%2Fapp.plex.tv"
+        query = urlencode(
+            {
+                "clientID": self.client_identifier,
+                "code": self.code,
+                "context[device][product]": "PlexMatch",
+                "context[device][platform]": "CLI",
+                "context[device][platformVersion]": "Python",
+                "forwardUrl": "https://app.plex.tv/desktop",
+            }
         )
+        return f"https://app.plex.tv/auth?{query}"
 
     @property
     def link_url(self) -> str:

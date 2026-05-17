@@ -4,6 +4,11 @@ All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
 
+## [0.1.15] - 2026-05-17
+- Fix Plex PIN auth URL composition to include explicit device context fields in the query string and avoid hash-based auth routing that could show an invalid app name during sign-in.
+- Add test coverage for the generated auth URL structure/parameters.
+- Bump project/package version to `0.1.15`.
+
 ## [0.1.14] - 2026-05-17
 - Fix PIN auth messaging so the `https://plex.tv/link` fallback is shown only when Plex returns a valid 4-digit code.
 - Prevent invalid long codes from being presented as manual link codes.
