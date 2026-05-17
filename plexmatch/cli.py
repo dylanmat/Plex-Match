@@ -16,7 +16,7 @@ def token_from_env_or_arg(arg_token: str | None) -> str:
     if importlib.util.find_spec("dotenv"):
         dotenv = importlib.import_module("dotenv")
         dotenv.load_dotenv()
-    token = arg_token or os.getenv("PLEX_TOKEN")
+    token = (arg_token or os.getenv("PLEX_TOKEN") or "").strip()
     if not token:
         raise ValueError("Missing Plex token. Set PLEX_TOKEN in environment/.env or pass --token.")
     return token
