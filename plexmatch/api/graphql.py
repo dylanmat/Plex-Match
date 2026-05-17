@@ -4,7 +4,10 @@ import httpx
 
 from plexmatch.models import Item, User
 
-COMMUNITY_ENDPOINT = "https://community.plex.tv/api"
+COMMUNITY_ENDPOINTS = [
+    "https://community.plex.tv/api",
+    "https://community.plex.tv/api/v2",
+]
 DISCOVER_ENDPOINT = "https://discover.provider.plex.tv"
 
 
@@ -17,9 +20,9 @@ class PlexApi:
             "Accept": "application/json",
             "Content-Type": "application/json",
             "X-Plex-Product": "PlexMatch",
-            "X-Plex-Version": "0.1.10",
+            "X-Plex-Version": "0.1.11",
             "X-Plex-Client-Identifier": "plexmatch-cli",
-            "User-Agent": "plexmatch/0.1.10",
+            "User-Agent": "plexmatch/0.1.11",
         }
 
     def _header_variants(self) -> list[dict[str, str]]:
@@ -29,12 +32,13 @@ class PlexApi:
     def _post_community(self, query: str, variables: dict | None = None) -> dict:
         payload = {"query": query, "variables": variables or {}}
         last_response: httpx.Response | None = None
-        for headers in self._header_variants():
-            r = httpx.post(COMMUNITY_ENDPOINT, json=payload, headers=headers, timeout=30)
-            if r.status_code != 401:
-                r.raise_for_status()
-                return r.json()
-            last_response = r
+        for endpoint in COMMUNITY_ENDPOINTS:
+            for headers in self._header_variants():
+                r = httpx.post(endpoint, json=payload, headers=headers, timeout=30)
+                if r.status_code != 401:
+                    r.raise_for_status()
+                    return r.json()
+                last_response = r
         if last_response is not None:
             last_response.raise_for_status()
         raise RuntimeError("Request failed before receiving a response.")

@@ -6,7 +6,7 @@ PlexMatch is a Python command-line tool for comparing two Plex users' watchlists
 V1 uses a Plex community/GraphQL approach, normalizes entries by stable IDs, finds overlap, scores matches, and can randomly pick one title.
 
 ## Version
-Current version: `0.1.10`
+Current version: `0.1.11`
 
 ## Features (V1)
 - PIN + JWK auth bootstrap flow (`--auth-pin`) to obtain a Plex JWT without legacy token
@@ -56,6 +56,7 @@ python -m plexmatch --user-a "Dylan" --user-b "Joy" --format json
 
 
 ## Changelog
+- 0.1.11: Added community GraphQL endpoint fallback (`/api` then `/api/v2`) for improved Plex JWT compatibility when listing users.
 - 0.1.10: Added Option 1 PIN+JWK authentication flow in CLI (`--auth-pin`) to bootstrap Plex JWT tokens.
 - 0.1.9: Documented Plex JWT authentication guidance (PIN/JWK registration, nonce refresh flow, and 7-day token rotation expectations).
 - 0.1.8: Aligned Plex API access flow with watchlistarr-style endpoints (friends GraphQL + discover watchlist pagination) and improved Plex headers.
