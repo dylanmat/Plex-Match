@@ -4,6 +4,20 @@ All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
 
+## [0.1.27] - 2026-05-17
+- Improve candidate matching by treating unique same-title entries as overlaps when one side lacks a year.
+- Preserve title/year separation when both sides have known but different years.
+- Try richer friend watchlist GraphQL fields (`year`, `originallyAvailableAt`, `guid`) before falling back to the minimal query.
+- Add regression coverage for missing-year title fallback, known-year conflicts, and richer friend node parsing.
+- Bump project/package version to `0.1.27`.
+
+## [0.1.26] - 2026-05-17
+- Change comparison output to list all filtered watchlist candidates from both users instead of only strict overlaps.
+- Add source labels to match output: `both`, `user_a`, and `user_b`.
+- Score strict overlaps highest while still scoring one-sided items for recommendation diagnostics.
+- Add regression coverage for all-candidate matching and candidate scoring.
+- Bump project/package version to `0.1.26`.
+
 ## [0.1.25] - 2026-05-17
 - Merge Plex XML friend metadata with community `allFriendsV2` results.
 - Prefer community GraphQL friend IDs for command-facing friend IDs because friend watchlist lookup depends on the community resolver.

@@ -27,3 +27,4 @@ class Match:
     year: int | None
     media_type: str | None
     score: int
+    source: str = "both"

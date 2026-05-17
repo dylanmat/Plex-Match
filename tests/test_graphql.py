@@ -183,3 +183,38 @@ def test_watchlist_friend_data_null_raises_sanitized_error(monkeypatch: pytest.M
     assert "secret-token" not in message
     assert "User not found" in message
     assert "watchlist sharing" in message
+
+
+def test_watchlist_friend_reads_year_from_rich_nodes(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_post(endpoint, json, headers, timeout):
+        captured["query"] = json["query"]
+        request = httpx.Request("POST", endpoint, json=json)
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "user": {
+                        "watchlist": {
+                            "nodes": [
+                                {"title": "Oppenheimer", "type": "movie", "year": 2023, "guid": "plex://movie/1"},
+                                {"title": "Cargo", "type": "movie", "originallyAvailableAt": "2017-10-06"},
+                            ],
+                            "pageInfo": {"hasNextPage": False, "endCursor": None},
+                        }
+                    }
+                }
+            },
+            request=request,
+        )
+
+    monkeypatch.setattr(graphql.httpx, "post", fake_post)
+
+    items = PlexApi("plex-token").watchlist("community-friend-1")
+
+    assert "originallyAvailableAt" in captured["query"]
+    assert [(item.title, item.year, item.guid) for item in items] == [
+        ("Oppenheimer", 2023, "plex://movie/1"),
+        ("Cargo", 2017, None),
+    ]

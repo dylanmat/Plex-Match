@@ -4,9 +4,9 @@ import os
 import random
 import time
 
-from plexmatch.matching import overlaps
+from plexmatch.matching import candidates
 from plexmatch.output import print_matches, print_users
-from plexmatch.scoring import score_items
+from plexmatch.scoring import score_candidates
 
 
 REQUIRED_PACKAGES = ("httpx",)
@@ -147,9 +147,9 @@ def main() -> int:
             raise SystemExit("One or both users are not accessible from this token. Use --list-users to see names, or use self/me for your own account.")
 
         normalized_type = {"movies": "movie", "shows": "show"}.get(args.type, args.type)
-        found = score_items(overlaps(api.watchlist(a.id), api.watchlist(b.id), normalized_type))
+        found = score_candidates(candidates(api.watchlist(a.id), api.watchlist(b.id), normalized_type))
         if not found:
-            raise SystemExit("No overlaps found.")
+            raise SystemExit("No watchlist items found for the selected users and type.")
         if args.pick_random:
             found = [random.choice(found)]
         print_matches(found, args.format, args.top)

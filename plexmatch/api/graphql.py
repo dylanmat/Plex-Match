@@ -221,7 +221,17 @@ class PlexApi:
         return items
 
     def _watchlist_for_friend(self, friend_id: str) -> list[Item]:
-        query = """
+        rich_query = """
+        query GetWatchlistHub($uuid: ID = "", $first: PaginationInt!, $after: String) {
+          user(id: $uuid) {
+            watchlist(first: $first, after: $after) {
+              nodes { id title type year originallyAvailableAt guid }
+              pageInfo { hasNextPage endCursor }
+            }
+          }
+        }
+        """
+        basic_query = """
         query GetWatchlistHub($uuid: ID = "", $first: PaginationInt!, $after: String) {
           user(id: $uuid) {
             watchlist(first: $first, after: $after) {
@@ -234,7 +244,10 @@ class PlexApi:
         after = None
         items: list[Item] = []
         while True:
-            response = self._post_community(query, {"uuid": str(friend_id), "first": 100, "after": after})
+            variables = {"uuid": str(friend_id), "first": 100, "after": after}
+            response = self._post_community(rich_query, variables)
+            if not isinstance(response.get("data"), dict) and self._has_graphql_errors(response):
+                response = self._post_community(basic_query, variables)
             data = response.get("data")
             if not isinstance(data, dict):
                 message = self._graphql_error_message(response)
@@ -244,12 +257,43 @@ class PlexApi:
                 )
             watchlist = (((data.get("user") or {}).get("watchlist")) or {})
             nodes = watchlist.get("nodes") or []
-            items.extend([Item(title=n.get("title") or "", year=None, media_type=(n.get("type") or "").lower() or None, guid=None, imdb_id=None, tmdb_id=None) for n in nodes if n.get("title")])
+            items.extend(self._items_from_friend_nodes(nodes))
             page = watchlist.get("pageInfo") or {}
             if not page.get("hasNextPage") or not page.get("endCursor"):
                 break
             after = page.get("endCursor")
         return items
+
+    def _items_from_friend_nodes(self, nodes: list[dict]) -> list[Item]:
+        items: list[Item] = []
+        for node in nodes:
+            if not node.get("title"):
+                continue
+            items.append(
+                Item(
+                    title=node.get("title") or "",
+                    year=self._year_from_node(node),
+                    media_type=(node.get("type") or "").lower() or None,
+                    guid=node.get("guid"),
+                    imdb_id=None,
+                    tmdb_id=None,
+                )
+            )
+        return items
+
+    def _year_from_node(self, node: dict) -> int | None:
+        value = node.get("year")
+        if isinstance(value, int):
+            return value
+        if isinstance(value, str) and value.isdigit():
+            return int(value)
+        date = node.get("originallyAvailableAt")
+        if isinstance(date, str) and len(date) >= 4 and date[:4].isdigit():
+            return int(date[:4])
+        return None
+
+    def _has_graphql_errors(self, response: dict) -> bool:
+        return isinstance(response.get("errors"), list) and bool(response["errors"])
 
     def _graphql_error_message(self, response: dict) -> str:
         errors = response.get("errors")

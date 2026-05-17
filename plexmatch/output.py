@@ -42,11 +42,11 @@ def print_matches(matches: list[Match], fmt: str, top: int | None = None) -> Non
     if Table is None or Console is None:
         print("PlexMatch Results")
         for m in data:
-            print(f"- {m.title} ({m.year or ''}) [{m.media_type or ''}] score={m.score}")
+            print(f"- {m.title} ({m.year or ''}) [{m.media_type or ''}] score={m.score} source={m.source}")
         return
     table = Table(title="PlexMatch Results")
-    for col in ("Title", "Year", "Type", "Score"):
+    for col in ("Title", "Year", "Type", "Score", "Source"):
         table.add_column(col)
     for m in data:
-        table.add_row(m.title, str(m.year or ""), m.media_type or "", str(m.score))
+        table.add_row(m.title, str(m.year or ""), m.media_type or "", str(m.score), m.source)
     Console().print(table)
