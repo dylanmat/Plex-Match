@@ -7,10 +7,11 @@ from plexmatch.api.graphql import PlexApi
 
 def test_users_reads_plex_tv_users_xml(monkeypatch: pytest.MonkeyPatch) -> None:
     captured_xml: dict[str, object] = {}
-    calls: list[str] = []
+    get_calls: list[str] = []
+    post_calls: list[str] = []
 
     def fake_get(url, params, headers, timeout):
-        calls.append(url)
+        get_calls.append(url)
         request = httpx.Request("GET", url, params=params)
         if url == graphql.PLEX_TV_ACCOUNT_ENDPOINT:
             return httpx.Response(200, json={"username": "owner", "friendlyName": "Owner"}, request=request)
@@ -28,19 +29,37 @@ def test_users_reads_plex_tv_users_xml(monkeypatch: pytest.MonkeyPatch) -> None:
             request=request,
         )
 
+    def fake_post(endpoint, json, headers, timeout):
+        post_calls.append(endpoint)
+        request = httpx.Request("POST", endpoint, json=json)
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "allFriendsV2": [
+                        {"user": {"id": "community-friend-1", "username": "Dylan"}},
+                    ]
+                }
+            },
+            request=request,
+        )
+
     monkeypatch.setattr(graphql.httpx, "get", fake_get)
+    monkeypatch.setattr(graphql.httpx, "post", fake_post)
 
     users = PlexApi("plex-token").users()
 
     assert users[0].id == "self"
     assert users[0].title == "Owner"
     assert users[0].is_self is True
-    assert users[1].id == "friend-uuid-1"
+    assert users[1].id == "community-friend-1"
     assert users[1].title == "Dylan"
     assert users[1].account_id == "1"
+    assert users[1].community_id == "community-friend-1"
     assert users[2].id == "2"
     assert users[2].title == "Joy"
-    assert calls == [graphql.PLEX_TV_USERS_ENDPOINT, graphql.PLEX_TV_ACCOUNT_ENDPOINT]
+    assert get_calls == [graphql.PLEX_TV_USERS_ENDPOINT, graphql.PLEX_TV_ACCOUNT_ENDPOINT]
+    assert post_calls == [graphql.COMMUNITY_ENDPOINTS[0]]
     assert captured_xml["url"] == graphql.PLEX_TV_USERS_ENDPOINT
     assert captured_xml["params"] == {"X-Plex-Token": "plex-token"}
     assert captured_xml["headers"]["Accept"] == "application/xml"

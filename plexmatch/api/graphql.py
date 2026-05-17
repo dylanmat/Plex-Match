@@ -134,9 +134,7 @@ class PlexApi:
         raise PlexApiError("Plex provider watchlist request failed before receiving a response.")
 
     def users(self) -> list[User]:
-        friends = self._users_from_plex_tv()
-        if not friends:
-            friends = self._users_from_community()
+        friends = self._merge_friend_sources(self._users_from_plex_tv(), self._safe_users_from_community())
         return [self.self_user(), *friends]
 
     def self_user(self) -> User:
@@ -161,9 +159,47 @@ class PlexApi:
           allFriendsV2 { user { id username } }
         }
         """
-        data = self._post_community(query).get("data", {})
+        data = self._post_community(query).get("data") or {}
+        if not isinstance(data, dict):
+            return []
         friends = ((data.get("allFriendsV2") or []))
-        return [User(id=str((f.get("user") or {}).get("id") or ""), title=(f.get("user") or {}).get("username") or "") for f in friends if (f.get("user") or {}).get("username")]
+        return [
+            User(
+                id=str((f.get("user") or {}).get("id") or ""),
+                title=(f.get("user") or {}).get("username") or "",
+                community_id=str((f.get("user") or {}).get("id") or "") or None,
+            )
+            for f in friends
+            if (f.get("user") or {}).get("username") and (f.get("user") or {}).get("id")
+        ]
+
+    def _safe_users_from_community(self) -> list[User]:
+        try:
+            return self._users_from_community()
+        except (PlexAuthError, PlexApiError, httpx.HTTPError):
+            return []
+
+    def _merge_friend_sources(self, plex_friends: list[User], community_friends: list[User]) -> list[User]:
+        plex_by_name = {friend.title.casefold(): friend for friend in plex_friends}
+        community_by_name = {friend.title.casefold(): friend for friend in community_friends}
+        merged: list[User] = []
+
+        for name, plex_friend in plex_by_name.items():
+            community_friend = community_by_name.pop(name, None)
+            if community_friend:
+                merged.append(
+                    User(
+                        id=community_friend.id,
+                        title=plex_friend.title,
+                        account_id=plex_friend.account_id,
+                        community_id=community_friend.community_id or community_friend.id,
+                    )
+                )
+            else:
+                merged.append(plex_friend)
+
+        merged.extend(community_by_name.values())
+        return merged
 
     def watchlist(self, user_id: str) -> list[Item]:
         if str(user_id) == SELF_USER_ID:

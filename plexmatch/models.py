@@ -7,6 +7,7 @@ class User:
     title: str
     is_self: bool = False
     account_id: str | None = None
+    community_id: str | None = None
 
 
 @dataclass(frozen=True)

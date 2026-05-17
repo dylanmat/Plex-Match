@@ -20,15 +20,17 @@ def print_users(users: list[User], fmt: str) -> None:
         for u in users:
             role = "self" if u.is_self else "friend"
             account = f", account={u.account_id}" if u.account_id else ""
-            print(f"- {u.title} ({u.id}, {role}{account})")
+            community = f", community={u.community_id}" if u.community_id else ""
+            print(f"- {u.title} ({u.id}, {role}{account}{community})")
         return
     table = Table(title="Accessible Plex Users")
     table.add_column("Name")
     table.add_column("ID")
     table.add_column("Role")
     table.add_column("Account ID")
+    table.add_column("Community ID")
     for u in users:
-        table.add_row(u.title, u.id, "self" if u.is_self else "friend", u.account_id or "")
+        table.add_row(u.title, u.id, "self" if u.is_self else "friend", u.account_id or "", u.community_id or "")
     Console().print(table)
 
 

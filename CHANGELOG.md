@@ -4,6 +4,14 @@ All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
 
+## [0.1.25] - 2026-05-17
+- Merge Plex XML friend metadata with community `allFriendsV2` results.
+- Prefer community GraphQL friend IDs for command-facing friend IDs because friend watchlist lookup depends on the community resolver.
+- Keep Plex account IDs visible as metadata in `--list-users`.
+- Add a Community ID column to user output.
+- Add regression coverage for XML/community friend ID merging.
+- Bump project/package version to `0.1.25`.
+
 ## [0.1.24] - 2026-05-17
 - Use friend UUIDs from `https://plex.tv/api/users/` as command-facing IDs because friend watchlist GraphQL resolves `user(id:)` through the Plex user UUID.
 - Preserve numeric Plex account IDs as separate `account_id` metadata in user output.
