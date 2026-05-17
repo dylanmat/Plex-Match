@@ -12,9 +12,16 @@ class PlexApi:
         self._token = token
 
     def _header_variants(self) -> list[dict[str, str]]:
+        base = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "X-Plex-Product": "PlexMatch",
+            "X-Plex-Version": "0.1.5",
+            "X-Plex-Client-Identifier": "plexmatch-cli",
+        }
         return [
-            {"X-Plex-Token": self._token, "Accept": "application/json"},
-            {"Authorization": f"Bearer {self._token}", "Accept": "application/json"},
+            {**base, "X-Plex-Token": self._token},
+            {**base, "Authorization": f"Bearer {self._token}"},
         ]
 
     def _post(self, query: str, variables: dict | None = None) -> dict:
