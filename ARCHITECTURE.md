@@ -19,6 +19,11 @@ Loads Plex token and optional settings from CLI flags, environment variables, an
 
 Suggested module: `plexmatch/config.py`
 
+### Cache Layer
+Stores normalized users, watchlists, and local library items in project-local SQLite without storing credentials.
+
+Suggested module: `plexmatch/cache.py`
+
 ### Plex API Layer
 Encapsulates Plex community/GraphQL calls. This should be the only layer aware of endpoint URLs, GraphQL query documents, pagination mechanics, headers, and raw response shapes.
 
@@ -57,14 +62,15 @@ Suggested module: `plexmatch/output.py`
 1. User runs CLI command.
 2. CLI loads config and validates token presence.
 3. API layer validates Plex authentication.
-4. For `--list-users`, API layer retrieves accessible users/friends and output layer displays them.
-5. For comparison commands, API layer fetches watchlists for selected users.
-6. Normalization layer converts raw items into stable normalized media records.
-7. Matching layer finds overlaps between both users.
-8. If local Plex server settings are configured, local library items are fetched and matched to candidates.
-9. Scoring layer assigns scores.
-10. Output layer prints table or JSON.
-11. If `--random` is used, selector chooses one item from scored matches.
+4. Cache layer returns fresh normalized data when available.
+5. For `--list-users`, API layer retrieves accessible users/friends on cache miss and output layer displays them.
+6. For comparison commands, API layer fetches watchlists for selected users on cache miss.
+7. Normalization layer converts raw items into stable normalized media records.
+8. Matching layer finds overlaps between both users.
+9. If local Plex server settings are configured, local library items are fetched or read from cache and matched to candidates.
+10. Scoring layer assigns scores.
+11. Output layer prints table or JSON.
+12. If `--random` is used, selector chooses one item from scored matches.
 
 ## Plex GraphQL Integration
 - Endpoint target: Plex cloud/community GraphQL API.
@@ -92,5 +98,5 @@ Minimum V1 acceptance checks:
 ## Operational Integration Points
 - Plex token loaded from local environment only.
 - Optional local Plex server availability checks through `PLEX_SERVER_URL` and `PLEX_SERVER_TOKEN`.
-- Optional future SQLite cache.
+- Project-local SQLite cache at `.plexmatch/cache.sqlite3` by default, overrideable with `PLEXMATCH_CACHE_PATH`.
 - Optional future TMDb, Trakt, Letterboxd, or IMDb import/enrichment.

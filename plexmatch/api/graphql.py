@@ -90,6 +90,14 @@ class PlexApi:
         response.raise_for_status()
         return response.json()
 
+    def account_cache_key(self) -> str:
+        data = self._get_plex_tv_json(PLEX_TV_ACCOUNT_ENDPOINT)
+        for field in ("uuid", "id", "username"):
+            value = data.get(field)
+            if value:
+                return f"plex-account:{value}"
+        return "plex-account:self"
+
     def _get_provider_json(self, base_url: str, path: str, params: dict[str, int | str]) -> dict:
         headers = {
             **self._base_headers(),

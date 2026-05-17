@@ -53,7 +53,7 @@ Track PlexMatch development priorities, sequencing, and delivery status.
 
 ### V2 Local Cache
 - Goal: reduce repeated API calls and improve performance.
-- Status: Planned
+- Status: Complete
 - Success Criteria:
   - SQLite cache.
   - Clear cache command.

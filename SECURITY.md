@@ -31,7 +31,9 @@ The project maintainer owns security decisions until formal ownership is assigne
 - Future web or hosted modes must receive a separate security review.
 - Keep dev/test credentials separate from any real user tokens where practical.
 - Avoid persistent storage of user watchlists in V1.
-- If caching is added, document retention and deletion behavior.
+- The local SQLite cache stores normalized users, watchlists, and local library metadata only; it must not store Plex tokens, local server tokens, or token hashes.
+- `.plexmatch/` is ignored by git, and `--clear-cache` deletes cached metadata.
+- Cache retention defaults to 6 hours and can be changed with `PLEX_CACHE_TTL_HOURS` or `--cache-ttl-hours`.
 
 ## Dependency and Runtime Controls
 - Pin or constrain dependencies once implementation stabilizes.

@@ -8,6 +8,13 @@ All notable changes to PlexMatch should be documented here.
 - Add sanitized warning-and-continue behavior when the local Plex server check fails.
 - Replace the `.env.example` Plex token with a placeholder value.
 
+## [0.2.0] - 2026-05-17
+- Add project-local SQLite cache at `.plexmatch/cache.sqlite3`.
+- Cache normalized users, watchlists, and local Plex library items with a default 6-hour TTL.
+- Add `--no-cache`, `--clear-cache`, and `--cache-ttl-hours`.
+- Add `PLEXMATCH_CACHE_PATH` and `PLEX_CACHE_TTL_HOURS` configuration support.
+- Keep cache namespaces token-free and exclude `.plexmatch/` from git.
+
 ## [0.1.32] - 2026-05-17
 - Add optional local Plex server availability enrichment for configured local libraries.
 - Add a +10 score bonus for candidates found on the local Plex server.

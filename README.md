@@ -6,7 +6,7 @@ PlexMatch is a Python command-line tool for comparing two Plex users' watchlists
 V1 uses a Plex community/GraphQL approach, normalizes entries by stable IDs, finds overlap, scores matches, and can randomly pick one title.
 
 ## Version
-Current version: `0.1.32`
+Current version: `0.2.0`
 
 ## Features (V1)
 - PIN + JWK auth bootstrap flow (`--auth-pin`) to obtain a Plex JWT without legacy token
@@ -20,6 +20,7 @@ Current version: `0.1.32`
 - Output as table or JSON
 - Filters and selection flags: `--type`, `--top`, `--random high`, `--random low`
 - Optional local Plex server availability check using `PLEX_SERVER_URL` and `PLEX_SERVER_TOKEN`
+- Project-local SQLite cache with `--no-cache`, `--clear-cache`, and configurable TTL
 
 ## CLI Examples
 ```bash
@@ -32,6 +33,8 @@ python -m plexmatch --user-a "Dylan" --user-b "Joy" --type movies --top 10
 python -m plexmatch --user-a "Dylan" --user-b "Joy" --random
 python -m plexmatch --user-a "Dylan" --user-b "Joy" --random low
 python -m plexmatch --user-a "Dylan" --user-b "Joy" --format json
+python -m plexmatch --clear-cache
+python -m plexmatch --user-a "Dylan" --user-b "Joy" --no-cache
 ```
 
 ## Quickstart
@@ -56,6 +59,23 @@ python -m plexmatch --user-a "Dylan" --user-b "Joy" --type movies
 
 Available local items receive a +10 score bonus. If the local server is unreachable or rejects the token, PlexMatch prints a sanitized warning and continues with local availability marked unknown.
 
+## Local Cache
+PlexMatch caches normalized users, watchlists, and local library items in `.plexmatch/cache.sqlite3` by default. The cache is self-contained for future Docker use and `.plexmatch/` is ignored by git.
+
+```env
+PLEX_CACHE_TTL_HOURS=6
+PLEXMATCH_CACHE_PATH=.plexmatch/cache.sqlite3
+```
+
+```bash
+python -m plexmatch --user-a "Dylan" --user-b "Joy"
+python -m plexmatch --user-a "Dylan" --user-b "Joy" --cache-ttl-hours 1
+python -m plexmatch --user-a "Dylan" --user-b "Joy" --no-cache
+python -m plexmatch --clear-cache
+```
+
+For Docker, mount `.plexmatch/` or set `PLEXMATCH_CACHE_PATH` to a mounted path such as `/app/.plexmatch/cache.sqlite3`. Tokens are not stored in the cache.
+
 
 ## Authentication (Plex JWT Recommended)
 - Plex now recommends JWT auth with short-lived (7 day) tokens and per-device key registration.
@@ -77,6 +97,7 @@ Available local items receive a +10 score bonus. If the local server is unreacha
 
 
 ## Changelog
+- 0.2.0: Add project-local SQLite caching for users, watchlists, and local library items.
 - 0.1.32: Add optional local Plex server availability enrichment and scoring/output support.
 - 0.1.31: Normalize one-sided candidate base scores so `user_a` and `user_b` both start at 10 before support bonuses.
 - 0.1.30: Tighten high-confidence random selection to exclude low-score recommendations and sample only from the higher-scored tier.

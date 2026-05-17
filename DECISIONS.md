@@ -51,3 +51,12 @@ Use this format for each new decision:
 - Consequences: Local availability improves movie-night selection without making the local server a required dependency. Failed local checks warn and continue with unknown availability.
 - Alternatives Considered: Require local availability once configured, add an explicit CLI flag, or defer the check to a later cache/web UI milestone.
 - Supersedes/Superseded By: None
+
+### ADR-005 - Store Cache in the Project Workspace
+- Date: 2026-05-17
+- Status: Accepted
+- Context: PlexMatch will eventually run from Docker, where a project-local or mounted path is easier to persist and inspect than an OS user cache directory.
+- Decision: V2 stores normalized users, watchlists, and local library items in `.plexmatch/cache.sqlite3` by default, with `PLEXMATCH_CACHE_PATH` available for mounted Docker paths.
+- Consequences: The cache is self-contained and portable. Cached metadata must be ignored by git and cleared with `--clear-cache` when needed.
+- Alternatives Considered: OS-specific user cache directories, no cache path override, token-derived cache namespaces.
+- Supersedes/Superseded By: None

@@ -3,3 +3,4 @@
 .env.*
 __pycache__/
 .plexmatch_pin_auth.json
+.plexmatch/

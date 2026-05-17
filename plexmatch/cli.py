@@ -4,7 +4,9 @@ import os
 import sys
 import time
 
+from plexmatch.cache import CacheError, CacheStore
 from plexmatch.matching import candidates, support_counts
+from plexmatch.models import Item, User
 from plexmatch.output import print_matches, print_users
 from plexmatch.scoring import pick_random_match, score_candidates
 
@@ -62,10 +64,23 @@ def main() -> int:
     p.add_argument("--auth-pin", action="store_true", help="Start/poll Plex PIN+JWK auth flow and print JWT.")
     p.add_argument("--client-id", default="plexmatch-cli", help="Plex client identifier for PIN+JWK auth.")
     p.add_argument("--auth-wait", type=int, default=0, help="Seconds to poll for PIN approval before exiting.")
+    p.add_argument("--no-cache", action="store_true", help="Bypass cache reads and writes for this run.")
+    p.add_argument("--clear-cache", action="store_true", help="Delete local cache and exit.")
+    p.add_argument("--cache-ttl-hours", type=float, help="Cache retention in hours. Defaults to PLEX_CACHE_TTL_HOURS or 6.")
     args = p.parse_args()
 
     assert_runtime_dependencies()
     from plexmatch.api.graphql import PlexApi, PlexAuthError, PlexApiError
+
+    load_dotenv_if_available()
+
+    if args.clear_cache:
+        try:
+            CacheStore().clear()
+        except CacheError as exc:
+            raise SystemExit(str(exc))
+        print("Cache cleared.")
+        return 0
 
     if args.auth_pin:
         from plexmatch.api.auth import (
@@ -135,18 +150,21 @@ def main() -> int:
         print(token)
         return 0
 
+    cache_ttl_seconds = parse_cache_ttl_seconds(args.cache_ttl_hours, p)
+    cache = None if args.no_cache else CacheStore()
     token = token_from_env_or_arg(args.token)
     api = PlexApi(token)
 
     try:
+        account_namespace = api.account_cache_key()
         if args.list_users:
-            print_users(api.users(), args.format)
+            print_users(cached_users(api, cache, account_namespace, cache_ttl_seconds), args.format)
             return 0
 
         if not (args.user_a and args.user_b):
             p.error("Use --list-users or provide --user-a and --user-b.")
 
-        users = api.users()
+        users = cached_users(api, cache, account_namespace, cache_ttl_seconds)
         by_name = {u.title.lower(): u for u in users}
         self_user = next((u for u in users if u.is_self), None)
         if self_user is not None:
@@ -158,17 +176,17 @@ def main() -> int:
             raise SystemExit("One or both users are not accessible from this token. Use --list-users to see names, or use self/me for your own account.")
 
         normalized_type = {"movies": "movie", "shows": "show"}.get(args.type, args.type)
-        items_a = api.watchlist(a.id)
-        items_b = api.watchlist(b.id)
+        items_a = cached_watchlist(api, cache, account_namespace, a.id, cache_ttl_seconds)
+        items_b = cached_watchlist(api, cache, account_namespace, b.id, cache_ttl_seconds)
         candidate_items = candidates(items_a, items_b, normalized_type)
-        availability = local_availability(candidate_items)
+        availability = local_availability(candidate_items, cache, cache_ttl_seconds)
         other_watchlists = []
         selected_ids = {a.id, b.id}
         for user in users:
             if user.id in selected_ids:
                 continue
             try:
-                other_watchlists.append(api.watchlist(user.id))
+                other_watchlists.append(cached_watchlist(api, cache, account_namespace, user.id, cache_ttl_seconds))
             except PlexApiError:
                 continue
         found = score_candidates(
@@ -186,16 +204,89 @@ def main() -> int:
     return 0
 
 
-def local_availability(candidate_items: list[tuple[str, object, str]]) -> dict[str, bool] | None:
+def parse_cache_ttl_seconds(arg_value: float | None, parser: argparse.ArgumentParser) -> int:
+    raw_value = arg_value if arg_value is not None else os.getenv("PLEX_CACHE_TTL_HOURS", "6")
+    try:
+        hours = float(raw_value)
+    except (TypeError, ValueError):
+        parser.error("--cache-ttl-hours/PLEX_CACHE_TTL_HOURS must be a positive number.")
+    if hours <= 0:
+        parser.error("--cache-ttl-hours/PLEX_CACHE_TTL_HOURS must be a positive number.")
+    return int(hours * 3600)
+
+
+def cached_users(api, cache: CacheStore | None, namespace: str, ttl_seconds: int) -> list[User]:
+    if cache is None:
+        return api.users()
+    try:
+        cached = cache.get_users(namespace)
+        if cached is not None:
+            return cached
+    except CacheError as exc:
+        print(f"Warning: cache read skipped. {exc}", file=sys.stderr)
+    users = api.users()
+    try:
+        cache.set_users(namespace, users, ttl_seconds)
+    except CacheError as exc:
+        print(f"Warning: cache write skipped. {exc}", file=sys.stderr)
+    return users
+
+
+def cached_watchlist(api, cache: CacheStore | None, namespace: str, user_id: str, ttl_seconds: int) -> list[Item]:
+    if cache is None:
+        return api.watchlist(user_id)
+    try:
+        cached = cache.get_watchlist(namespace, user_id)
+        if cached is not None:
+            return cached
+    except CacheError as exc:
+        print(f"Warning: cache read skipped. {exc}", file=sys.stderr)
+    items = api.watchlist(user_id)
+    try:
+        cache.set_watchlist(namespace, user_id, items, ttl_seconds)
+    except CacheError as exc:
+        print(f"Warning: cache write skipped. {exc}", file=sys.stderr)
+    return items
+
+
+def local_availability(
+    candidate_items: list[tuple[str, Item, str]],
+    cache: CacheStore | None = None,
+    ttl_seconds: int = 21600,
+) -> dict[str, bool] | None:
     server_url = (os.getenv("PLEX_SERVER_URL") or "").strip()
     server_token = (os.getenv("PLEX_SERVER_TOKEN") or "").strip()
     if not (server_url and server_token):
         return None
-    from plexmatch.api.local import LocalPlexApi, LocalPlexApiError, availability_for_candidates
+    from plexmatch.api.local import LocalPlexApiError, availability_for_candidates
 
     try:
-        local_items = LocalPlexApi(server_url, server_token).library_items()
+        local_items = cached_local_items(server_url, server_token, cache, ttl_seconds)
         return availability_for_candidates(candidate_items, local_items)
     except LocalPlexApiError as exc:
         print(f"Warning: local Plex availability check skipped. {exc}", file=sys.stderr)
         return None
+
+
+def cached_local_items(
+    server_url: str,
+    server_token: str,
+    cache: CacheStore | None,
+    ttl_seconds: int,
+) -> list[Item]:
+    from plexmatch.api.local import LocalPlexApi
+
+    if cache is None:
+        return LocalPlexApi(server_url, server_token).library_items()
+    try:
+        cached = cache.get_local_items(server_url)
+        if cached is not None:
+            return cached
+    except CacheError as exc:
+        print(f"Warning: cache read skipped. {exc}", file=sys.stderr)
+    items = LocalPlexApi(server_url, server_token).library_items()
+    try:
+        cache.set_local_items(server_url, items, ttl_seconds)
+    except CacheError as exc:
+        print(f"Warning: cache write skipped. {exc}", file=sys.stderr)
+    return items

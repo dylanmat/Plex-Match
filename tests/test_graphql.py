@@ -81,6 +81,16 @@ def test_users_rejects_401_with_sanitized_error(monkeypatch: pytest.MonkeyPatch)
     assert "PLEX_TOKEN" in message
 
 
+def test_account_cache_key_uses_non_secret_account_identifier(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_get(url, params, headers, timeout):
+        request = httpx.Request("GET", url, params=params)
+        return httpx.Response(200, json={"id": 12345, "username": "owner"}, request=request)
+
+    monkeypatch.setattr(graphql.httpx, "get", fake_get)
+
+    assert PlexApi("secret-token").account_cache_key() == "plex-account:12345"
+
+
 def test_watchlist_self_uses_discover_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, object] = {}
 
