@@ -1,3 +1,7 @@
+## [0.1.2] - 2026-05-17
+- Added CLI startup validation for required runtime packages before importing API modules.
+- Improved missing dependency error message to explicitly recommend `pip install -r requirements.txt`.
+
 # CHANGELOG
 
 All notable changes to PlexMatch should be documented here.
