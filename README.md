@@ -6,7 +6,7 @@ PlexMatch is a Python command-line tool for comparing two Plex users' watchlists
 V1 uses a Plex community/GraphQL approach, normalizes entries by stable IDs, finds overlap, scores matches, and can randomly pick one title.
 
 ## Version
-Current version: `0.1.0`
+Current version: `0.1.1`
 
 ## Features (V1)
 - Python 3.11+ CLI only (`python -m plexmatch`)
