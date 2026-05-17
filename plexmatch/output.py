@@ -1,8 +1,12 @@
 import json
 from dataclasses import asdict
 
-from rich.console import Console
-from rich.table import Table
+try:
+    from rich.console import Console
+    from rich.table import Table
+except ModuleNotFoundError:
+    Console = None
+    Table = None
 
 from plexmatch.models import Match, User
 
@@ -10,6 +14,11 @@ from plexmatch.models import Match, User
 def print_users(users: list[User], fmt: str) -> None:
     if fmt == "json":
         print(json.dumps([asdict(u) for u in users], indent=2))
+        return
+    if Table is None or Console is None:
+        print("Accessible Plex Users")
+        for u in users:
+            print(f"- {u.title} ({u.id})")
         return
     table = Table(title="Accessible Plex Users")
     table.add_column("Name")
@@ -23,6 +32,11 @@ def print_matches(matches: list[Match], fmt: str, top: int | None = None) -> Non
     data = matches[:top] if top else matches
     if fmt == "json":
         print(json.dumps([asdict(m) for m in data], indent=2))
+        return
+    if Table is None or Console is None:
+        print("PlexMatch Results")
+        for m in data:
+            print(f"- {m.title} ({m.year or ''}) [{m.media_type or ''}] score={m.score}")
         return
     table = Table(title="PlexMatch Results")
     for col in ("Title", "Year", "Type", "Score"):

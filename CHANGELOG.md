@@ -1,13 +1,13 @@
-## [0.1.2] - 2026-05-17
-- Added CLI startup validation for required runtime packages before importing API modules.
-- Improved missing dependency error message to explicitly recommend `pip install -r requirements.txt`.
-
 # CHANGELOG
 
 All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
 - No unreleased changes.
+
+## [0.1.3] - 2026-05-17
+- Fix `python -m plexmatch --list-users` when `rich` is not installed by using a plain-text output fallback.
+- Treat `rich` as optional at startup while keeping JSON and text output available.
 
 ## [0.1.1] - 2026-05-17
 - Fix CLI startup when `python-dotenv` is not installed by making `.env` loading optional and continuing with normal environment variable lookup.
