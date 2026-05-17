@@ -6,7 +6,7 @@ PlexMatch is a Python command-line tool for comparing two Plex users' watchlists
 V1 uses a Plex community/GraphQL approach, normalizes entries by stable IDs, finds overlap, scores matches, and can randomly pick one title.
 
 ## Version
-Current version: `0.1.8`
+Current version: `0.1.9`
 
 ## Features (V1)
 - Python 3.11+ CLI only (`python -m plexmatch`)
@@ -35,6 +35,14 @@ python -m plexmatch --user-a "Dylan" --user-b "Joy" --format json
 5. Compare users: `python -m plexmatch --user-a "User A" --user-b "User B"`
 6. Run checks: `ruff check . && pytest -q`
 
+
+## Authentication (Plex JWT Recommended)
+- Plex now recommends JWT auth with short-lived (7 day) tokens and per-device key registration.
+- PlexMatch currently accepts a token via `--token` or `PLEX_TOKEN`; JWT tokens work in the same `X-Plex-Token` header path as legacy tokens.
+- For new apps, prefer PIN + JWK registration (`POST https://clients.plex.tv/api/v2/pins`) then exchange with a device-signed JWT.
+- For existing legacy-token apps, register JWK at `POST https://clients.plex.tv/api/v2/auth/jwk`, then use nonce + signed device JWT refresh flow (`/auth/nonce` then `/auth/token`).
+- Plan for token refresh every 7 days. If token validation fails (for example, expired token), obtain a fresh JWT and rerun.
+
 ## Security Notes
 - Never commit tokens or `.env` files.
 - Plex tokens are never printed by CLI output.
@@ -47,6 +55,7 @@ python -m plexmatch --user-a "Dylan" --user-b "Joy" --format json
 
 
 ## Changelog
+- 0.1.9: Documented Plex JWT authentication guidance (PIN/JWK registration, nonce refresh flow, and 7-day token rotation expectations).
 - 0.1.8: Aligned Plex API access flow with watchlistarr-style endpoints (friends GraphQL + discover watchlist pagination) and improved Plex headers.
 - 0.1.7: Updated `test_api.py` to test GraphQL connectivity with the same headers/auth fallback used by the main client.
 - 0.1.5: Added token trimming and extra Plex client headers to reduce avoidable 401 responses.

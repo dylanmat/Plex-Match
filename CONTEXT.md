@@ -16,7 +16,7 @@ PlexMatch helps two Plex users choose what to watch by comparing their Plex watc
 - Compliance constraints: no credentials committed to source control; no tokens in logs, prompts, screenshots, or issue text.
 
 ## Domain Vocabulary
-- Plex token: authentication token used to call Plex services.
+- Plex token: authentication token used to call Plex services (legacy token or new 7-day JWT).
 - Community API: Plex cloud endpoint used by Plex social/watchlist features.
 - GraphQL operation: Plex cloud query used to retrieve users and watchlist hubs.
 - Watchlist item: movie, show, or other Plex metadata entry saved by a user.
@@ -27,7 +27,7 @@ PlexMatch helps two Plex users choose what to watch by comparing their Plex watc
 ## Current State
 - What exists today: project prompt and root documentation template.
 - Known limitations: Plex's GraphQL/community API is likely undocumented/private and may break.
-- Active risks: API field changes, pagination changes, privacy restrictions, inaccessible watchlists, incomplete metadata, duplicate titles, title/year collisions.
+- Active risks: API field changes, pagination changes, privacy restrictions, inaccessible watchlists, incomplete metadata, duplicate titles, title/year collisions, and JWT expiry/refresh handling drift.
 
 ## Success Signals
 - `--list-users` returns accessible Plex users/friends without exposing secrets.

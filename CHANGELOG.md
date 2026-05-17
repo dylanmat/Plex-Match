@@ -5,6 +5,10 @@ All notable changes to PlexMatch should be documented here.
 ## [Unreleased]
 - No unreleased changes.
 
+## [0.1.9] - 2026-05-17
+- Document Plex JWT authentication expectations for users: PIN/JWK registration paths, nonce-based refresh flow, and 7-day token rotation guidance.
+- Bump project/package version to `0.1.9`.
+
 ## [0.1.8] - 2026-05-17
 - Align Plex integration flow closer to watchlistarr: use `allFriendsV2` GraphQL for friend discovery, discover watchlist pagination for self watchlist, and paged friend watchlist GraphQL query.
 - Add common Plex request headers including `User-Agent`, and bump client/version metadata to `0.1.8`.
