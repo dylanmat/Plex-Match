@@ -5,6 +5,10 @@ All notable changes to PlexMatch should be documented here.
 ## [Unreleased]
 - No unreleased changes.
 
+## [0.1.8] - 2026-05-17
+- Align Plex integration flow closer to watchlistarr: use `allFriendsV2` GraphQL for friend discovery, discover watchlist pagination for self watchlist, and paged friend watchlist GraphQL query.
+- Add common Plex request headers including `User-Agent`, and bump client/version metadata to `0.1.8`.
+
 ## [0.1.7] - 2026-05-17
 - Improve `test_api.py` to validate real GraphQL connectivity by sending a `users` query with Plex client headers and both auth header variants (`X-Plex-Token` and `Authorization: Bearer`).
 - Align client version header and package metadata to `0.1.7`.
