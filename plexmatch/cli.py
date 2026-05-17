@@ -64,6 +64,8 @@ def main() -> int:
             session = start_pin_auth(args.client_id)
             print("Open this URL in a browser and sign in:")
             print(session.auth_url)
+            print("If the web auth page fails, open https://plex.tv/link and enter this code:")
+            print(session.code)
             raise SystemExit("PIN session created. Run the same command again after approval.")
         if args.auth_wait > 0:
             deadline = time.time() + args.auth_wait
@@ -74,11 +76,17 @@ def main() -> int:
                     break
                 time.sleep(2)
             if not token:
-                raise SystemExit(f"PIN is not approved yet after waiting {args.auth_wait}s. Auth URL: {session.auth_url}")
+                raise SystemExit(
+                    f"PIN is not approved yet after waiting {args.auth_wait}s. "
+                    f"Auth URL: {session.auth_url} | Manual fallback: {session.link_url} (code: {session.code})"
+                )
         else:
             token = exchange_pin_for_token(session)
             if not token:
-                raise SystemExit(f"PIN is not approved yet. Finish browser auth and run again. Auth URL: {session.auth_url}")
+                raise SystemExit(
+                    "PIN is not approved yet. Finish browser auth and run again. "
+                    f"Auth URL: {session.auth_url} | Manual fallback: {session.link_url} (code: {session.code})"
+                )
         print(token)
         return 0
 
