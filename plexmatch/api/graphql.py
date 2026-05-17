@@ -9,13 +9,27 @@ ENDPOINT = "https://community.plex.tv/api"
 
 class PlexApi:
     def __init__(self, token: str) -> None:
-        self._headers = {"X-Plex-Token": token, "Accept": "application/json"}
+        self._token = token
+
+    def _header_variants(self) -> list[dict[str, str]]:
+        return [
+            {"X-Plex-Token": self._token, "Accept": "application/json"},
+            {"Authorization": f"Bearer {self._token}", "Accept": "application/json"},
+        ]
 
     def _post(self, query: str, variables: dict | None = None) -> dict:
         payload = {"query": query, "variables": variables or {}}
-        r = httpx.post(ENDPOINT, json=payload, headers=self._headers, timeout=30)
-        r.raise_for_status()
-        return r.json()
+        last_response: httpx.Response | None = None
+        for headers in self._header_variants():
+            r = httpx.post(ENDPOINT, json=payload, headers=headers, timeout=30)
+            if r.status_code != 401:
+                r.raise_for_status()
+                return r.json()
+            last_response = r
+
+        if last_response is not None:
+            last_response.raise_for_status()
+        raise RuntimeError("Request failed before receiving a response.")
 
     def users(self) -> list[User]:
         query = "query Users { users { id title username friend } }"
