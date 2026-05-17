@@ -2,6 +2,7 @@ import argparse
 import importlib
 import os
 import random
+import time
 
 from plexmatch.matching import overlaps
 from plexmatch.output import print_matches, print_users
@@ -49,6 +50,7 @@ def main() -> int:
     p.add_argument("--format", choices=["table", "json"], default="table")
     p.add_argument("--auth-pin", action="store_true", help="Start/poll Plex PIN+JWK auth flow and print JWT.")
     p.add_argument("--client-id", default="plexmatch-cli", help="Plex client identifier for PIN+JWK auth.")
+    p.add_argument("--auth-wait", type=int, default=0, help="Seconds to poll for PIN approval before exiting.")
     args = p.parse_args()
 
     assert_runtime_dependencies()
@@ -63,9 +65,20 @@ def main() -> int:
             print("Open this URL in a browser and sign in:")
             print(session.auth_url)
             raise SystemExit("PIN session created. Run the same command again after approval.")
-        token = exchange_pin_for_token(session)
-        if not token:
-            raise SystemExit("PIN is not approved yet. Finish browser auth and run again.")
+        if args.auth_wait > 0:
+            deadline = time.time() + args.auth_wait
+            token = None
+            while time.time() < deadline and not token:
+                token = exchange_pin_for_token(session)
+                if token:
+                    break
+                time.sleep(2)
+            if not token:
+                raise SystemExit(f"PIN is not approved yet after waiting {args.auth_wait}s. Auth URL: {session.auth_url}")
+        else:
+            token = exchange_pin_for_token(session)
+            if not token:
+                raise SystemExit(f"PIN is not approved yet. Finish browser auth and run again. Auth URL: {session.auth_url}")
         print(token)
         return 0
 
