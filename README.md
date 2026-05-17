@@ -6,7 +6,7 @@ PlexMatch is a Python command-line tool for comparing two Plex users' watchlists
 V1 uses a Plex community/GraphQL approach, normalizes entries by stable IDs, finds overlap, scores matches, and can randomly pick one title.
 
 ## Version
-Current version: `0.1.20`
+Current version: `0.1.24`
 
 ## Features (V1)
 - PIN + JWK auth bootstrap flow (`--auth-pin`) to obtain a Plex JWT without legacy token
@@ -60,6 +60,10 @@ python -m plexmatch --user-a "Dylan" --user-b "Joy" --format json
 
 
 ## Changelog
+- 0.1.24: Use friend UUIDs for friend watchlist GraphQL while showing numeric Plex account IDs as separate user metadata.
+- 0.1.23: Use numeric Plex friend IDs from `--list-users` for friend watchlist GraphQL and sanitize GraphQL `data: null` responses.
+- 0.1.22: Reduce self-watchlist page size for Plex provider compatibility and fall back from Discover to Metadata provider watchlist endpoints.
+- 0.1.21: Move Discover watchlist auth out of query strings, add PlexAPI-compatible watchlist request flags, and sanitize Discover 400/401 failures.
 - 0.1.20: Include the signed-in Plex account as `self` in `--list-users` and route `--user-a self`/`me` through the Discover watchlist endpoint.
 - 0.1.19: Use Plex's XML user-sharing API for `--list-users` and replace raw 401 tracebacks with sanitized token guidance.
 - 0.1.18: Align PIN auth URLs and JWT payloads with PlexAPI's current OAuth helper so Plex displays `PlexMatch` instead of `0` and receives nonce/scope claims.

@@ -11,9 +11,11 @@ COMMUNITY_ENDPOINTS = [
     "https://community.plex.tv/api/v2",
 ]
 DISCOVER_ENDPOINT = "https://discover.provider.plex.tv"
+METADATA_ENDPOINT = "https://metadata.provider.plex.tv"
 PLEX_TV_ACCOUNT_ENDPOINT = "https://plex.tv/api/v2/user"
 PLEX_TV_USERS_ENDPOINT = "https://plex.tv/api/users/"
 SELF_USER_ID = "self"
+WATCHLIST_PAGE_SIZE = 10
 
 
 class PlexAuthError(RuntimeError):
@@ -88,15 +90,48 @@ class PlexApi:
         response.raise_for_status()
         return response.json()
 
-    def _get_discover(self, path: str, params: dict[str, int | str]) -> dict:
+    def _get_provider_json(self, base_url: str, path: str, params: dict[str, int | str]) -> dict:
+        headers = {
+            **self._base_headers(),
+            "X-Plex-Token": self._token,
+        }
         r = httpx.get(
-            f"{DISCOVER_ENDPOINT}{path}",
-            params={"X-Plex-Token": self._token, **params},
-            headers=self._base_headers(),
+            f"{base_url}{path}",
+            params=params,
+            headers=headers,
             timeout=30,
         )
+        if r.status_code == 401:
+            raise PlexAuthError(
+                "Plex rejected this token for the Discover watchlist API. "
+                "Run `python -m plexmatch --auth-pin`, then save the new token to PLEX_TOKEN or pass it with --token."
+            )
+        if r.status_code == 400:
+            raise PlexApiError(
+                "Plex rejected the provider watchlist request. "
+                "The token is valid for account lookup, but this watchlist endpoint did not accept the request."
+            )
         r.raise_for_status()
         return r.json()
+
+    def _get_watchlist_page(self, start: int, size: int) -> dict:
+        params = {
+            "includeAdvanced": 1,
+            "includeMeta": 1,
+            "includeCollections": 1,
+            "includeExternalMedia": 1,
+            "X-Plex-Container-Start": start,
+            "X-Plex-Container-Size": size,
+        }
+        last_error: PlexApiError | None = None
+        for base_url in (DISCOVER_ENDPOINT, METADATA_ENDPOINT):
+            try:
+                return self._get_provider_json(base_url, "/library/sections/watchlist/all", params)
+            except PlexApiError as exc:
+                last_error = exc
+        if last_error is not None:
+            raise last_error
+        raise PlexApiError("Plex provider watchlist request failed before receiving a response.")
 
     def users(self) -> list[User]:
         friends = self._users_from_plex_tv()
@@ -114,9 +149,10 @@ class PlexApi:
         users: list[User] = []
         for element in root.findall("User"):
             user_id = element.attrib.get("uuid") or element.attrib.get("id") or ""
+            account_id = element.attrib.get("id")
             title = element.attrib.get("title") or element.attrib.get("username") or ""
             if user_id and title:
-                users.append(User(id=str(user_id), title=title))
+                users.append(User(id=str(user_id), title=title, account_id=account_id))
         return users
 
     def _users_from_community(self) -> list[User]:
@@ -136,12 +172,9 @@ class PlexApi:
 
     def _watchlist_for_self(self) -> list[Item]:
         items: list[Item] = []
-        start, size = 0, 300
+        start, size = 0, WATCHLIST_PAGE_SIZE
         while True:
-            data = self._get_discover(
-                "/library/sections/watchlist/all",
-                {"X-Plex-Container-Start": start, "X-Plex-Container-Size": size},
-            )
+            data = self._get_watchlist_page(start, size)
             media = data.get("MediaContainer") or {}
             metadata = media.get("Metadata") or []
             items.extend(self._items_from_metadata(metadata))
@@ -165,7 +198,14 @@ class PlexApi:
         after = None
         items: list[Item] = []
         while True:
-            data = self._post_community(query, {"uuid": str(friend_id), "first": 100, "after": after}).get("data", {})
+            response = self._post_community(query, {"uuid": str(friend_id), "first": 100, "after": after})
+            data = response.get("data")
+            if not isinstance(data, dict):
+                message = self._graphql_error_message(response)
+                raise PlexApiError(
+                    f"Plex could not return this friend's watchlist. {message} "
+                    "Confirm the friend appears in --list-users and has watchlist sharing enabled."
+                )
             watchlist = (((data.get("user") or {}).get("watchlist")) or {})
             nodes = watchlist.get("nodes") or []
             items.extend([Item(title=n.get("title") or "", year=None, media_type=(n.get("type") or "").lower() or None, guid=None, imdb_id=None, tmdb_id=None) for n in nodes if n.get("title")])
@@ -174,6 +214,15 @@ class PlexApi:
                 break
             after = page.get("endCursor")
         return items
+
+    def _graphql_error_message(self, response: dict) -> str:
+        errors = response.get("errors")
+        if not isinstance(errors, list):
+            return "The GraphQL response did not include usable data."
+        messages = [str(error.get("message")) for error in errors if isinstance(error, dict) and error.get("message")]
+        if not messages:
+            return "The GraphQL response did not include usable data."
+        return " ".join(messages[:2])
 
     def _items_from_metadata(self, metadata: list[dict]) -> list[Item]:
         out: list[Item] = []

@@ -37,6 +37,7 @@ def test_users_reads_plex_tv_users_xml(monkeypatch: pytest.MonkeyPatch) -> None:
     assert users[0].is_self is True
     assert users[1].id == "friend-uuid-1"
     assert users[1].title == "Dylan"
+    assert users[1].account_id == "1"
     assert users[2].id == "2"
     assert users[2].title == "Joy"
     assert calls == [graphql.PLEX_TV_USERS_ENDPOINT, graphql.PLEX_TV_ACCOUNT_ENDPOINT]
@@ -67,6 +68,7 @@ def test_watchlist_self_uses_discover_endpoint(monkeypatch: pytest.MonkeyPatch) 
     def fake_get(url, params, headers, timeout):
         captured["url"] = url
         captured["params"] = params
+        captured["headers"] = headers
         request = httpx.Request("GET", url, params=params)
         return httpx.Response(
             200,
@@ -84,6 +86,81 @@ def test_watchlist_self_uses_discover_endpoint(monkeypatch: pytest.MonkeyPatch) 
     items = PlexApi("plex-token").watchlist(graphql.SELF_USER_ID)
 
     assert captured["url"] == f"{graphql.DISCOVER_ENDPOINT}/library/sections/watchlist/all"
-    assert captured["params"]["X-Plex-Token"] == "plex-token"
+    assert "X-Plex-Token" not in captured["params"]
+    assert captured["headers"]["X-Plex-Token"] == "plex-token"
+    assert captured["params"]["X-Plex-Container-Size"] == graphql.WATCHLIST_PAGE_SIZE
+    assert captured["params"]["includeAdvanced"] == 1
+    assert captured["params"]["includeMeta"] == 1
+    assert captured["params"]["includeCollections"] == 1
+    assert captured["params"]["includeExternalMedia"] == 1
     assert items[0].title == "Alien"
     assert items[0].imdb_id == "tt0078748"
+
+
+def test_watchlist_self_falls_back_to_metadata_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+
+    def fake_get(url, params, headers, timeout):
+        calls.append(url)
+        request = httpx.Request("GET", url, params=params)
+        if url.startswith(graphql.DISCOVER_ENDPOINT):
+            return httpx.Response(400, text="Bad Request", request=request)
+        return httpx.Response(
+            200,
+            json={
+                "MediaContainer": {
+                    "totalSize": 1,
+                    "Metadata": [{"title": "Aliens", "year": 1986, "type": "movie"}],
+                }
+            },
+            request=request,
+        )
+
+    monkeypatch.setattr(graphql.httpx, "get", fake_get)
+
+    items = PlexApi("plex-token").watchlist(graphql.SELF_USER_ID)
+
+    assert calls == [
+        f"{graphql.DISCOVER_ENDPOINT}/library/sections/watchlist/all",
+        f"{graphql.METADATA_ENDPOINT}/library/sections/watchlist/all",
+    ]
+    assert items[0].title == "Aliens"
+
+
+def test_watchlist_self_400_from_all_providers_raises_sanitized_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_get(url, params, headers, timeout):
+        request = httpx.Request("GET", url, params=params)
+        return httpx.Response(400, text="Bad Request", request=request)
+
+    monkeypatch.setattr(graphql.httpx, "get", fake_get)
+
+    with pytest.raises(graphql.PlexApiError) as exc_info:
+        PlexApi("secret-token").watchlist(graphql.SELF_USER_ID)
+
+    message = str(exc_info.value)
+    assert "secret-token" not in message
+    assert "provider watchlist" in message
+
+
+def test_watchlist_friend_data_null_raises_sanitized_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_post(endpoint, json, headers, timeout):
+        captured["variables"] = json["variables"]
+        request = httpx.Request("POST", endpoint, json=json)
+        return httpx.Response(
+            200,
+            json={"data": None, "errors": [{"message": "User not found"}]},
+            request=request,
+        )
+
+    monkeypatch.setattr(graphql.httpx, "post", fake_post)
+
+    with pytest.raises(graphql.PlexApiError) as exc_info:
+        PlexApi("secret-token").watchlist("123")
+
+    assert captured["variables"]["uuid"] == "123"
+    message = str(exc_info.value)
+    assert "secret-token" not in message
+    assert "User not found" in message
+    assert "watchlist sharing" in message

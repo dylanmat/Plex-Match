@@ -6,6 +6,7 @@ class User:
     id: str
     title: str
     is_self: bool = False
+    account_id: str | None = None
 
 
 @dataclass(frozen=True)

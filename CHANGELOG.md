@@ -4,6 +4,32 @@ All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
 
+## [0.1.24] - 2026-05-17
+- Use friend UUIDs from `https://plex.tv/api/users/` as command-facing IDs because friend watchlist GraphQL resolves `user(id:)` through the Plex user UUID.
+- Preserve numeric Plex account IDs as separate `account_id` metadata in user output.
+- Add an Account ID column to `--list-users`.
+- Bump project/package version to `0.1.24`.
+
+## [0.1.23] - 2026-05-17
+- Use numeric Plex account IDs from `https://plex.tv/api/users/` for friend entries so friend watchlist GraphQL receives the expected identifier.
+- Replace friend watchlist GraphQL `data: null` crashes with sanitized errors that include Plex's GraphQL message when available.
+- Add regression coverage for friend watchlist `data: null` handling.
+- Bump project/package version to `0.1.23`.
+
+## [0.1.22] - 2026-05-17
+- Reduce self-watchlist pagination from 300 to 10 items per request to avoid Plex provider `X-Plex-Container-Size` 400 responses.
+- Add `includeAdvanced` and `includeMeta` request flags used by current Plex Web watchlist requests.
+- Fall back from `discover.provider.plex.tv` to `metadata.provider.plex.tv` for self watchlist retrieval.
+- Add regression tests for provider fallback and all-provider sanitized 400 handling.
+- Bump project/package version to `0.1.22`.
+
+## [0.1.21] - 2026-05-17
+- Move Discover watchlist authentication from the query string to the `X-Plex-Token` header to avoid token disclosure in HTTP error URLs.
+- Add PlexAPI-compatible `includeCollections` and `includeExternalMedia` flags to self watchlist requests.
+- Replace raw Discover 400/401 tracebacks with sanitized CLI errors.
+- Add regression coverage for sanitized Discover failures and header-based token use.
+- Bump project/package version to `0.1.21`.
+
 ## [0.1.20] - 2026-05-17
 - Include the authenticated Plex account as a synthetic `self` user in `--list-users`.
 - Accept `self` and `me` aliases for comparison commands so the signed-in account can be used as `--user-a` or `--user-b`.
