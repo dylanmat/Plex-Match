@@ -16,7 +16,7 @@ class PlexApi:
             "Accept": "application/json",
             "Content-Type": "application/json",
             "X-Plex-Product": "PlexMatch",
-            "X-Plex-Version": "0.1.5",
+            "X-Plex-Version": "0.1.7",
             "X-Plex-Client-Identifier": "plexmatch-cli",
         }
         return [
