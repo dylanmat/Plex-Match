@@ -6,7 +6,7 @@ PlexMatch is a Python command-line tool for comparing two Plex users' watchlists
 V1 uses a Plex community/GraphQL approach, normalizes entries by stable IDs, finds overlap, scores matches, and can randomly pick one title.
 
 ## Version
-Current version: `0.1.31`
+Current version: `0.1.32`
 
 ## Features (V1)
 - PIN + JWK auth bootstrap flow (`--auth-pin`) to obtain a Plex JWT without legacy token
@@ -19,6 +19,7 @@ Current version: `0.1.31`
 - Diagnostic comparison output lists all filtered watchlist items with source labels (`both`, `user_a`, `user_b`)
 - Output as table or JSON
 - Filters and selection flags: `--type`, `--top`, `--random high`, `--random low`
+- Optional local Plex server availability check using `PLEX_SERVER_URL` and `PLEX_SERVER_TOKEN`
 
 ## CLI Examples
 ```bash
@@ -41,6 +42,20 @@ python -m plexmatch --user-a "Dylan" --user-b "Joy" --format json
 5. Compare users: `python -m plexmatch --user-a "User A" --user-b "User B"`
 6. Run checks: `ruff check . && pytest -q`
 
+## Local Availability Check
+When both `PLEX_SERVER_URL` and `PLEX_SERVER_TOKEN` are configured, PlexMatch automatically checks movie/show library sections on the local Plex server and marks comparison results as locally available, unavailable, or unknown.
+
+```env
+PLEX_SERVER_URL=http://localhost:32400
+PLEX_SERVER_TOKEN=your_local_server_token_here
+```
+
+```bash
+python -m plexmatch --user-a "Dylan" --user-b "Joy" --type movies
+```
+
+Available local items receive a +10 score bonus. If the local server is unreachable or rejects the token, PlexMatch prints a sanitized warning and continues with local availability marked unknown.
+
 
 ## Authentication (Plex JWT Recommended)
 - Plex now recommends JWT auth with short-lived (7 day) tokens and per-device key registration.
@@ -62,6 +77,7 @@ python -m plexmatch --user-a "Dylan" --user-b "Joy" --format json
 
 
 ## Changelog
+- 0.1.32: Add optional local Plex server availability enrichment and scoring/output support.
 - 0.1.31: Normalize one-sided candidate base scores so `user_a` and `user_b` both start at 10 before support bonuses.
 - 0.1.30: Tighten high-confidence random selection to exclude low-score recommendations and sample only from the higher-scored tier.
 - 0.1.29: Add high-confidence score-weighted random selection and low-confidence uniform random selection.

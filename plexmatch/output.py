@@ -44,12 +44,29 @@ def print_matches(matches: list[Match], fmt: str, top: int | None = None) -> Non
         for m in data:
             print(
                 f"- {m.title} ({m.year or ''}) [{m.media_type or ''}] "
-                f"score={m.score} source={m.source} support={m.support_count}"
+                f"score={m.score} source={m.source} support={m.support_count} "
+                f"local={_availability_label(m.available_locally)}"
             )
         return
     table = Table(title="PlexMatch Results")
-    for col in ("Title", "Year", "Type", "Score", "Source", "Support"):
+    for col in ("Title", "Year", "Type", "Score", "Source", "Support", "Local"):
         table.add_column(col)
     for m in data:
-        table.add_row(m.title, str(m.year or ""), m.media_type or "", str(m.score), m.source, str(m.support_count))
+        table.add_row(
+            m.title,
+            str(m.year or ""),
+            m.media_type or "",
+            str(m.score),
+            m.source,
+            str(m.support_count),
+            _availability_label(m.available_locally),
+        )
     Console().print(table)
+
+
+def _availability_label(value: bool | None) -> str:
+    if value is True:
+        return "yes"
+    if value is False:
+        return "no"
+    return "unknown"

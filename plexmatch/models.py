@@ -29,3 +29,4 @@ class Match:
     score: int
     source: str = "both"
     support_count: int = 0
+    available_locally: bool | None = None

@@ -1,6 +1,7 @@
 import argparse
 import importlib
 import os
+import sys
 import time
 
 from plexmatch.matching import candidates, support_counts
@@ -13,13 +14,17 @@ OPTIONAL_PACKAGES = ("dotenv",)
 
 
 def token_from_env_or_arg(arg_token: str | None) -> str:
-    if importlib.util.find_spec("dotenv"):
-        dotenv = importlib.import_module("dotenv")
-        dotenv.load_dotenv()
+    load_dotenv_if_available()
     token = (arg_token or os.getenv("PLEX_TOKEN") or "").strip()
     if not token:
         raise ValueError("Missing Plex token. Set PLEX_TOKEN in environment/.env or pass --token.")
     return token
+
+
+def load_dotenv_if_available() -> None:
+    if importlib.util.find_spec("dotenv"):
+        dotenv = importlib.import_module("dotenv")
+        dotenv.load_dotenv()
 
 
 def missing_required_packages() -> list[str]:
@@ -156,6 +161,7 @@ def main() -> int:
         items_a = api.watchlist(a.id)
         items_b = api.watchlist(b.id)
         candidate_items = candidates(items_a, items_b, normalized_type)
+        availability = local_availability(candidate_items)
         other_watchlists = []
         selected_ids = {a.id, b.id}
         for user in users:
@@ -165,7 +171,11 @@ def main() -> int:
                 other_watchlists.append(api.watchlist(user.id))
             except PlexApiError:
                 continue
-        found = score_candidates(candidate_items, support_counts(candidate_items, other_watchlists, normalized_type))
+        found = score_candidates(
+            candidate_items,
+            support_counts(candidate_items, other_watchlists, normalized_type),
+            availability,
+        )
         if not found:
             raise SystemExit("No watchlist items found for the selected users and type.")
         if args.random_mode:
@@ -174,3 +184,18 @@ def main() -> int:
     except (PlexAuthError, PlexApiError) as exc:
         raise SystemExit(str(exc))
     return 0
+
+
+def local_availability(candidate_items: list[tuple[str, object, str]]) -> dict[str, bool] | None:
+    server_url = (os.getenv("PLEX_SERVER_URL") or "").strip()
+    server_token = (os.getenv("PLEX_SERVER_TOKEN") or "").strip()
+    if not (server_url and server_token):
+        return None
+    from plexmatch.api.local import LocalPlexApi, LocalPlexApiError, availability_for_candidates
+
+    try:
+        local_items = LocalPlexApi(server_url, server_token).library_items()
+        return availability_for_candidates(candidate_items, local_items)
+    except LocalPlexApiError as exc:
+        print(f"Warning: local Plex availability check skipped. {exc}", file=sys.stderr)
+        return None

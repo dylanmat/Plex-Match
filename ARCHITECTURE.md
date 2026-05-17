@@ -24,6 +24,7 @@ Encapsulates Plex community/GraphQL calls. This should be the only layer aware o
 
 Suggested modules:
 - `plexmatch/api/graphql.py`
+- `plexmatch/api/local.py`
 - `plexmatch/api/users.py`
 - `plexmatch/api/watchlists.py`
 
@@ -60,9 +61,10 @@ Suggested module: `plexmatch/output.py`
 5. For comparison commands, API layer fetches watchlists for selected users.
 6. Normalization layer converts raw items into stable normalized media records.
 7. Matching layer finds overlaps between both users.
-8. Scoring layer assigns scores.
-9. Output layer prints table or JSON.
-10. If `--random` is used, selector chooses one item from scored matches.
+8. If local Plex server settings are configured, local library items are fetched and matched to candidates.
+9. Scoring layer assigns scores.
+10. Output layer prints table or JSON.
+11. If `--random` is used, selector chooses one item from scored matches.
 
 ## Plex GraphQL Integration
 - Endpoint target: Plex cloud/community GraphQL API.
@@ -72,7 +74,7 @@ Suggested module: `plexmatch/output.py`
 
 ## V1 Scoring
 - Base 100 points if the title appears in both watchlists.
-- +10 if available on a configured local Plex server/library, when implemented.
+- +10 if available on a configured local Plex server/library.
 - +5 if IMDb/TMDb/Plex rating is >= 7.0, when available.
 - -10 if either user has already watched it, where detectable.
 - +5 if recently added, where detectable.
@@ -89,6 +91,6 @@ Minimum V1 acceptance checks:
 
 ## Operational Integration Points
 - Plex token loaded from local environment only.
-- Optional future integration with local Plex server availability checks.
+- Optional local Plex server availability checks through `PLEX_SERVER_URL` and `PLEX_SERVER_TOKEN`.
 - Optional future SQLite cache.
 - Optional future TMDb, Trakt, Letterboxd, or IMDb import/enrichment.

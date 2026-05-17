@@ -7,7 +7,7 @@ Track PlexMatch development priorities, sequencing, and delivery status.
 
 ### V1 CLI MVP
 - Goal: compare two Plex users' visible watchlists and show overlaps.
-- Status: Planned
+- Status: Complete
 - Owner: Project Maintainer
 - Dependencies: Plex token, Plex community/GraphQL access, visible friend/watchlist privacy settings.
 - Success Criteria:
@@ -20,7 +20,7 @@ Track PlexMatch development priorities, sequencing, and delivery status.
 
 ### GraphQL Discovery and Hardening
 - Goal: isolate and document Plex GraphQL query behavior.
-- Status: Planned
+- Status: Complete
 - Owner: Project Maintainer
 - Dependencies: API exploration and sample response shapes.
 - Success Criteria:
@@ -33,7 +33,7 @@ Track PlexMatch development priorities, sequencing, and delivery status.
 
 ### V1.1 Filtering and Better Selection
 - Goal: make results easier to use for movie-night decisions.
-- Status: Planned
+- Status: Complete
 - Success Criteria:
   - Filter by movies, shows, or both.
   - Add runtime filter where metadata supports it.
@@ -43,7 +43,7 @@ Track PlexMatch development priorities, sequencing, and delivery status.
 
 ### V1.2 Local Availability Check
 - Goal: optionally identify whether a match is available on a configured local Plex server/library.
-- Status: Planned
+- Status: Complete
 - Success Criteria:
   - Accept local Plex server URL and token.
   - Match local library items by GUID or metadata IDs.

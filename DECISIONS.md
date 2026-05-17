@@ -42,3 +42,12 @@ Use this format for each new decision:
 - Consequences: More reliable matching when stable IDs exist, with acceptable fallback behavior when they do not.
 - Alternatives Considered: Title-only matching, fuzzy matching first, external metadata enrichment first.
 - Supersedes/Superseded By: None
+
+### ADR-004 - Local Plex Availability Is Optional Enrichment
+- Date: 2026-05-17
+- Status: Accepted
+- Context: Watchlist truth remains in Plex cloud/community APIs, but users may want to know whether a candidate is already present in their local Plex library.
+- Decision: When `PLEX_SERVER_URL` and `PLEX_SERVER_TOKEN` are configured, PlexMatch checks local movie/show library sections and adds local availability to scoring and output.
+- Consequences: Local availability improves movie-night selection without making the local server a required dependency. Failed local checks warn and continue with unknown availability.
+- Alternatives Considered: Require local availability once configured, add an explicit CLI flag, or defer the check to a later cache/web UI milestone.
+- Supersedes/Superseded By: None

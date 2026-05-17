@@ -40,6 +40,21 @@ def test_candidate_scoring_adds_support_bonus() -> None:
     ]
 
 
+def test_candidate_scoring_adds_local_availability_bonus() -> None:
+    scored = score_candidates(
+        [
+            ("k1", Item("Both", 2001, "movie", None, None, None), "both"),
+            ("k2", Item("Only B", 2002, "movie", None, None, None), "user_b"),
+        ],
+        availability={"k1": True, "k2": False},
+    )
+
+    assert [(m.title, m.score, m.available_locally) for m in scored] == [
+        ("Both", 110, True),
+        ("Only B", 10, False),
+    ]
+
+
 def test_high_confidence_random_uses_score_weights(monkeypatch) -> None:
     matches = [
         Match("k1", "Low", 2000, "movie", 10),

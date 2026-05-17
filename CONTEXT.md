@@ -11,7 +11,7 @@ PlexMatch helps two Plex users choose what to watch by comparing their Plex watc
 ## Operational Context
 - Runtime environments: local developer workstation, initially Windows-friendly but cross-platform Python where practical.
 - Interface: command line only for V1.
-- External integrations: Plex community/GraphQL API, optional local Plex server availability check in a later V1/V2 increment.
+- External integrations: Plex community/GraphQL API and optional local Plex server availability checks.
 - Technical constraints: Plex watchlists are cloud/account-based and are not stored directly on the local Plex Media Server.
 - Compliance constraints: no credentials committed to source control; no tokens in logs, prompts, screenshots, or issue text.
 
@@ -25,7 +25,7 @@ PlexMatch helps two Plex users choose what to watch by comparing their Plex watc
 - Weighted random: random selection where higher-scored matches are more likely to be selected.
 
 ## Current State
-- What exists today: project prompt and root documentation template.
+- What exists today: Python CLI with Plex watchlist comparison, filtering, scoring, random selection, cross-user support scoring, and optional local Plex server availability enrichment.
 - Known limitations: Plex's GraphQL/community API is likely undocumented/private and may break.
 - Active risks: API field changes, pagination changes, privacy restrictions, inaccessible watchlists, incomplete metadata, duplicate titles, title/year collisions, and JWT expiry/refresh handling drift.
 
@@ -33,6 +33,7 @@ PlexMatch helps two Plex users choose what to watch by comparing their Plex watc
 - `--list-users` returns accessible Plex users/friends without exposing secrets.
 - Comparing two visible users returns a deterministic overlap list.
 - `--random` selects one valid overlap.
+- Configured local Plex server checks identify whether candidates are already available locally.
 - Empty, private, or inaccessible watchlists produce clear error messages.
 - Tests cover normalization, overlap detection, and scoring.
 

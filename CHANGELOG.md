@@ -3,6 +3,17 @@
 All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
+- Add automatic local Plex server availability enrichment when `PLEX_SERVER_URL` and `PLEX_SERVER_TOKEN` are configured.
+- Add local availability to scoring, table/plain output, and JSON output.
+- Add sanitized warning-and-continue behavior when the local Plex server check fails.
+- Replace the `.env.example` Plex token with a placeholder value.
+
+## [0.1.32] - 2026-05-17
+- Add optional local Plex server availability enrichment for configured local libraries.
+- Add a +10 score bonus for candidates found on the local Plex server.
+- Include local availability in table, plain-text, and JSON comparison output.
+- Add regression coverage for local Plex XML parsing, availability matching, scoring, and output.
+- Bump project/package version to `0.1.32`.
 
 ## [0.1.31] - 2026-05-17
 - Normalize one-sided candidate scoring so `user_a` and `user_b` both start at base score 10.

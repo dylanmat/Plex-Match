@@ -8,24 +8,38 @@ SOURCE_SCORES = {
     "user_b": 10,
     "user_a": 10,
 }
+LOCAL_AVAILABILITY_BONUS = 10
 
 
 def score_items(pairs: list[tuple[str, Item]]) -> list[Match]:
-    scored = [Match(key=k, title=i.title, year=i.year, media_type=i.media_type, score=100, source="both") for k, i in pairs]
+    scored = [
+        Match(key=k, title=i.title, year=i.year, media_type=i.media_type, score=100, source="both")
+        for k, i in pairs
+    ]
     return _sort_matches(scored)
 
 
-def score_candidates(candidates: list[tuple[str, Item, str]], support_counts: dict[str, int] | None = None) -> list[Match]:
+def score_candidates(
+    candidates: list[tuple[str, Item, str]],
+    support_counts: dict[str, int] | None = None,
+    availability: dict[str, bool] | None = None,
+) -> list[Match]:
     support_counts = support_counts or {}
+    availability = availability or {}
     scored = [
         Match(
             key=key,
             title=item.title,
             year=item.year,
             media_type=item.media_type,
-            score=SOURCE_SCORES.get(source, 0) + (support_counts.get(key, 0) * 5),
+            score=(
+                SOURCE_SCORES.get(source, 0)
+                + (support_counts.get(key, 0) * 5)
+                + (LOCAL_AVAILABILITY_BONUS if availability.get(key) is True else 0)
+            ),
             source=source,
             support_count=support_counts.get(key, 0),
+            available_locally=availability.get(key),
         )
         for key, item, source in candidates
     ]
