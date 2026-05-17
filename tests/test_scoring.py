@@ -20,8 +20,8 @@ def test_candidate_scoring_prioritizes_overlaps_then_recommendations() -> None:
 
     assert [(m.title, m.score, m.source) for m in scored] == [
         ("Both", 100, "both"),
-        ("Only B", 25, "user_b"),
         ("Only A", 10, "user_a"),
+        ("Only B", 10, "user_b"),
     ]
 
 
@@ -36,7 +36,7 @@ def test_candidate_scoring_adds_support_bonus() -> None:
 
     assert [(m.title, m.score, m.support_count) for m in scored] == [
         ("Both", 110, 2),
-        ("Only B", 30, 1),
+        ("Only B", 15, 1),
     ]
 
 

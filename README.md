@@ -6,7 +6,7 @@ PlexMatch is a Python command-line tool for comparing two Plex users' watchlists
 V1 uses a Plex community/GraphQL approach, normalizes entries by stable IDs, finds overlap, scores matches, and can randomly pick one title.
 
 ## Version
-Current version: `0.1.30`
+Current version: `0.1.31`
 
 ## Features (V1)
 - PIN + JWK auth bootstrap flow (`--auth-pin`) to obtain a Plex JWT without legacy token
@@ -62,6 +62,7 @@ python -m plexmatch --user-a "Dylan" --user-b "Joy" --format json
 
 
 ## Changelog
+- 0.1.31: Normalize one-sided candidate base scores so `user_a` and `user_b` both start at 10 before support bonuses.
 - 0.1.30: Tighten high-confidence random selection to exclude low-score recommendations and sample only from the higher-scored tier.
 - 0.1.29: Add high-confidence score-weighted random selection and low-confidence uniform random selection.
 - 0.1.28: Add cross-user support scoring: each other accessible user with a candidate item in their watchlist adds +5 to that item's score.

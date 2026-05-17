@@ -4,6 +4,11 @@ All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
 
+## [0.1.31] - 2026-05-17
+- Normalize one-sided candidate scoring so `user_a` and `user_b` both start at base score 10.
+- Keep support bonuses additive on top of the equal one-sided base score.
+- Bump project/package version to `0.1.31`.
+
 ## [0.1.30] - 2026-05-17
 - Tighten `--random high` to sample only from higher-scored results instead of weighting every result.
 - Exclude base score `10` items from high-confidence random selection.

@@ -5,7 +5,7 @@ from plexmatch.models import Item, Match
 
 SOURCE_SCORES = {
     "both": 100,
-    "user_b": 25,
+    "user_b": 10,
     "user_a": 10,
 }
 
