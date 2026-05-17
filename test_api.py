@@ -31,7 +31,7 @@ def header_variants(token: str) -> list[dict[str, str]]:
         "Accept": "application/json",
         "Content-Type": "application/json",
         "X-Plex-Product": "PlexMatch",
-        "X-Plex-Version": "0.1.7",
+        "X-Plex-Version": "0.1.8",
         "X-Plex-Client-Identifier": "plexmatch-cli",
     }
     return [{**base, "X-Plex-Token": token}, {**base, "Authorization": f"Bearer {token}"}]
