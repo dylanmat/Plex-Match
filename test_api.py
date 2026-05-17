@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Quick connectivity test for Plex community API.
+"""Quick Plex GraphQL connectivity test.
 
 Usage:
   python test_api.py --token YOUR_TOKEN
@@ -14,21 +14,27 @@ import sys
 
 import httpx
 
+API_URL = "https://community.plex.tv/api"
+USERS_QUERY = "query Users { users { id title username friend } }"
+
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Test Plex API connectivity.")
-    parser.add_argument(
-        "--token",
-        default=os.getenv("PLEX_TOKEN", "").strip(),
-        help="Plex token (defaults to PLEX_TOKEN environment variable).",
-    )
-    parser.add_argument(
-        "--url",
-        default="https://community.plex.tv/api",
-        help="API URL to test.",
-    )
+    parser = argparse.ArgumentParser(description="Test Plex GraphQL connectivity.")
+    parser.add_argument("--token", default=os.getenv("PLEX_TOKEN", "").strip(), help="Plex token.")
+    parser.add_argument("--url", default=API_URL, help="GraphQL API URL to test.")
     parser.add_argument("--timeout", type=float, default=15.0, help="Request timeout in seconds.")
     return parser.parse_args()
+
+
+def header_variants(token: str) -> list[dict[str, str]]:
+    base = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-Plex-Product": "PlexMatch",
+        "X-Plex-Version": "0.1.7",
+        "X-Plex-Client-Identifier": "plexmatch-cli",
+    }
+    return [{**base, "X-Plex-Token": token}, {**base, "Authorization": f"Bearer {token}"}]
 
 
 def main() -> int:
@@ -37,29 +43,33 @@ def main() -> int:
         print("ERROR: Missing token. Pass --token or set PLEX_TOKEN.")
         return 2
 
-    headers = {"X-Plex-Token": args.token, "Accept": "application/json"}
-    print(f"Testing Plex API: {args.url}")
-    print(f"Using timeout: {args.timeout:.1f}s")
+    payload = {"query": USERS_QUERY, "variables": {}}
+    print(f"Testing Plex GraphQL API: {args.url}")
 
-    try:
-        response = httpx.get(args.url, headers=headers, timeout=args.timeout)
-    except httpx.HTTPError as exc:
-        print(f"REQUEST FAILED: {exc}")
-        return 1
+    for idx, headers in enumerate(header_variants(args.token), start=1):
+        auth_name = "X-Plex-Token" if "X-Plex-Token" in headers else "Authorization: Bearer"
+        print(f"Attempt {idx}: auth via {auth_name}")
+        try:
+            response = httpx.post(args.url, json=payload, headers=headers, timeout=args.timeout)
+        except httpx.HTTPError as exc:
+            print(f"REQUEST FAILED: {exc}")
+            continue
 
-    print(f"HTTP {response.status_code}")
-    content_type = response.headers.get("content-type", "unknown")
-    print(f"Content-Type: {content_type}")
+        print(f"HTTP {response.status_code}")
+        if response.status_code == 401:
+            print("Unauthorized, trying next auth header variant.")
+            continue
 
-    if response.is_success:
-        preview = response.text[:300].replace("\n", " ").strip()
-        print("SUCCESS: API request completed.")
-        if preview:
-            print(f"Body preview: {preview}")
+        if not response.is_success:
+            print(f"FAILURE: {response.text[:300]}")
+            return 1
+
+        data = response.json().get("data", {})
+        users = data.get("users") or data.get("friends") or []
+        print(f"SUCCESS: GraphQL request completed, users returned: {len(users)}")
         return 0
 
-    print("FAILURE: API request returned a non-success status.")
-    print(f"Response body (first 300 chars): {response.text[:300]}")
+    print("FAILURE: All auth variants failed.")
     return 1
 
 
