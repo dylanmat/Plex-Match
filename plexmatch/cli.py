@@ -8,7 +8,7 @@ from plexmatch.output import print_matches, print_users
 from plexmatch.scoring import score_items
 
 
-REQUIRED_PACKAGES = ("httpx", "rich")
+REQUIRED_PACKAGES = ("httpx",)
 OPTIONAL_PACKAGES = ("dotenv",)
 
 
