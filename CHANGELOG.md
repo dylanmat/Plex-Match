@@ -4,6 +4,11 @@ All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
 
+## [0.1.13] - 2026-05-17
+- Improve PIN auth fallback UX: print a manual `https://plex.tv/link` path with the PIN code when `app.plex.tv/auth` fails.
+- Include the same manual fallback URL/code in pending-approval messages.
+- Bump project/package version to `0.1.13`.
+
 ## [0.1.12] - 2026-05-17
 - Improve PIN auth flow UX: add `--auth-wait` to poll for browser approval, and include the auth URL in pending-approval messages.
 - Bump project/package version to `0.1.12`.

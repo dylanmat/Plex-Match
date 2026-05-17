@@ -35,6 +35,10 @@ class PinAuthSession:
             "&context%5Bdevice%5D%5Bproduct%5D=PlexMatch&forwardUrl=https%3A%2F%2Fapp.plex.tv"
         )
 
+    @property
+    def link_url(self) -> str:
+        return "https://plex.tv/link"
+
     def private_key(self) -> Ed25519PrivateKey:
         return Ed25519PrivateKey.from_private_bytes(base64.b64decode(self.private_key_b64))
 
