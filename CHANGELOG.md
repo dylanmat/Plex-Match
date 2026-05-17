@@ -4,6 +4,13 @@ All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
 
+## [0.1.18] - 2026-05-17
+- Align the browser auth URL with PlexAPI's current `https://app.plex.tv/auth/#!?...` format.
+- Add the full Plex device context to the auth URL and request headers so the consent screen identifies `PlexMatch` instead of `0`.
+- Add Plex nonce and scope claims to the signed device JWT used for PIN exchange.
+- Expire stored PIN sessions created by older auth URL formats so users receive a fresh link.
+- Bump project/package version to `0.1.18`.
+
 ## [0.1.17] - 2026-05-17
 - Fix Plex PIN auth exchange by storing the generated JWK `kid` and including it in the signed device JWT header.
 - Replace expired or old-format PIN sessions with a new auth URL instead of surfacing raw 404 tracebacks.

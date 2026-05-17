@@ -29,11 +29,13 @@ def test_manual_link_code_only_allows_4_digit_numeric() -> None:
 def test_auth_url_contains_expected_context_fields() -> None:
     session = PinAuthSession(pin_id=1, code="1234", client_identifier="plexmatch-cli", private_key_b64="")
     auth_url = session.auth_url
-    assert auth_url.startswith("https://app.plex.tv/auth#!?")
+    assert auth_url.startswith("https://app.plex.tv/auth/#!?")
     assert "clientID=plexmatch-cli" in auth_url
     assert "code=1234" in auth_url
     assert "context%5Bdevice%5D%5Bproduct%5D=PlexMatch" in auth_url
+    assert "context%5Bdevice%5D%5Bversion%5D=" in auth_url
     assert "context%5Bdevice%5D%5Bplatform%5D=CLI" in auth_url
+    assert "context%5Bdevice%5D%5BdeviceName%5D=PlexMatch+CLI" in auth_url
 
 
 def test_exchange_pin_for_token_signs_device_jwt_with_key_id(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -45,7 +47,10 @@ def test_exchange_pin_for_token_signs_device_jwt_with_key_id(monkeypatch: pytest
         captured["headers"] = headers
         return "signed-device-jwt"
 
-    def fake_get(url, params, headers, timeout):
+    def fake_get(url, headers, timeout, params=None):
+        if url.endswith("/auth/nonce"):
+            request = httpx.Request("GET", url)
+            return httpx.Response(200, json={"nonce": "plex-nonce"}, request=request)
         captured["params"] = params
         request = httpx.Request("GET", url, params=params)
         return httpx.Response(200, json={"authToken": "plex-jwt"}, request=request)
@@ -59,11 +64,14 @@ def test_exchange_pin_for_token_signs_device_jwt_with_key_id(monkeypatch: pytest
         client_identifier="plexmatch-cli",
         private_key_b64=private_key_b64(),
         key_id="key-1",
+        session_format_version=auth.SESSION_FORMAT_VERSION,
     )
 
     assert auth.exchange_pin_for_token(session) == "plex-jwt"
     assert captured["algorithm"] == "EdDSA"
     assert captured["headers"] == {"kid": "key-1"}
+    assert captured["payload"]["nonce"] == "plex-nonce"
+    assert captured["payload"]["scope"] == ",".join(auth.AUTH_SCOPES)
     assert captured["params"] == {"deviceJWT": "signed-device-jwt"}
 
 
@@ -71,7 +79,10 @@ def test_exchange_pin_for_token_404_raises_sanitized_expired_error(monkeypatch: 
     def fake_encode(payload, key, algorithm, headers):
         return "signed-device-jwt"
 
-    def fake_get(url, params, headers, timeout):
+    def fake_get(url, headers, timeout, params=None):
+        if url.endswith("/auth/nonce"):
+            request = httpx.Request("GET", url)
+            return httpx.Response(200, json={"nonce": "plex-nonce"}, request=request)
         request = httpx.Request("GET", url, params=params)
         return httpx.Response(404, json={"error": "not found"}, request=request)
 
@@ -84,6 +95,7 @@ def test_exchange_pin_for_token_404_raises_sanitized_expired_error(monkeypatch: 
         client_identifier="plexmatch-cli",
         private_key_b64=private_key_b64(),
         key_id="key-1",
+        session_format_version=auth.SESSION_FORMAT_VERSION,
     )
 
     with pytest.raises(auth.PinAuthSessionExpired) as exc_info:
