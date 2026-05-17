@@ -4,6 +4,14 @@ All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
 
+## [0.1.20] - 2026-05-17
+- Include the authenticated Plex account as a synthetic `self` user in `--list-users`.
+- Accept `self` and `me` aliases for comparison commands so the signed-in account can be used as `--user-a` or `--user-b`.
+- Route the signed-in account watchlist through the Discover watchlist endpoint while friend watchlists continue to use friend-specific GraphQL.
+- Add a role column to user output to distinguish `self` from friends.
+- Add regression tests for self user listing and self watchlist routing.
+- Bump project/package version to `0.1.20`.
+
 ## [0.1.19] - 2026-05-17
 - Use Plex's `https://plex.tv/api/users/` XML endpoint as the primary source for `--list-users`.
 - Keep community GraphQL as a watchlist-specific integration instead of requiring it for user listing.

@@ -137,10 +137,14 @@ def main() -> int:
 
         users = api.users()
         by_name = {u.title.lower(): u for u in users}
+        self_user = next((u for u in users if u.is_self), None)
+        if self_user is not None:
+            by_name["self"] = self_user
+            by_name["me"] = self_user
         try:
             a, b = by_name[args.user_a.lower()], by_name[args.user_b.lower()]
         except KeyError:
-            raise SystemExit("One or both users are not accessible from this token.")
+            raise SystemExit("One or both users are not accessible from this token. Use --list-users to see names, or use self/me for your own account.")
 
         normalized_type = {"movies": "movie", "shows": "show"}.get(args.type, args.type)
         found = score_items(overlaps(api.watchlist(a.id), api.watchlist(b.id), normalized_type))

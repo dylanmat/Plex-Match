@@ -11,7 +11,9 @@ COMMUNITY_ENDPOINTS = [
     "https://community.plex.tv/api/v2",
 ]
 DISCOVER_ENDPOINT = "https://discover.provider.plex.tv"
+PLEX_TV_ACCOUNT_ENDPOINT = "https://plex.tv/api/v2/user"
 PLEX_TV_USERS_ENDPOINT = "https://plex.tv/api/users/"
+SELF_USER_ID = "self"
 
 
 class PlexAuthError(RuntimeError):
@@ -75,6 +77,17 @@ class PlexApi:
         except ElementTree.ParseError as exc:
             raise PlexApiError("Plex returned an invalid XML response.") from exc
 
+    def _get_plex_tv_json(self, url: str) -> dict:
+        headers = self._base_headers()
+        response = httpx.get(url, params={"X-Plex-Token": self._token}, headers=headers, timeout=30)
+        if response.status_code == 401:
+            raise PlexAuthError(
+                "Plex rejected this token. "
+                "Run `python -m plexmatch --auth-pin`, then save the new token to PLEX_TOKEN or pass it with --token."
+            )
+        response.raise_for_status()
+        return response.json()
+
     def _get_discover(self, path: str, params: dict[str, int | str]) -> dict:
         r = httpx.get(
             f"{DISCOVER_ENDPOINT}{path}",
@@ -86,10 +99,15 @@ class PlexApi:
         return r.json()
 
     def users(self) -> list[User]:
-        users = self._users_from_plex_tv()
-        if users:
-            return users
-        return self._users_from_community()
+        friends = self._users_from_plex_tv()
+        if not friends:
+            friends = self._users_from_community()
+        return [self.self_user(), *friends]
+
+    def self_user(self) -> User:
+        data = self._get_plex_tv_json(PLEX_TV_ACCOUNT_ENDPOINT)
+        title = data.get("title") or data.get("friendlyName") or data.get("username") or "Self"
+        return User(id=SELF_USER_ID, title=str(title), is_self=True)
 
     def _users_from_plex_tv(self) -> list[User]:
         root = self._get_plex_tv_xml(PLEX_TV_USERS_ENDPOINT)
@@ -112,9 +130,9 @@ class PlexApi:
         return [User(id=str((f.get("user") or {}).get("id") or ""), title=(f.get("user") or {}).get("username") or "") for f in friends if (f.get("user") or {}).get("username")]
 
     def watchlist(self, user_id: str) -> list[Item]:
-        if any(u.id == str(user_id) for u in self.users()):
-            return self._watchlist_for_friend(user_id)
-        return self._watchlist_for_self()
+        if str(user_id) == SELF_USER_ID:
+            return self._watchlist_for_self()
+        return self._watchlist_for_friend(user_id)
 
     def _watchlist_for_self(self) -> list[Item]:
         items: list[Item] = []

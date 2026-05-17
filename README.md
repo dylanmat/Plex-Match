@@ -6,7 +6,7 @@ PlexMatch is a Python command-line tool for comparing two Plex users' watchlists
 V1 uses a Plex community/GraphQL approach, normalizes entries by stable IDs, finds overlap, scores matches, and can randomly pick one title.
 
 ## Version
-Current version: `0.1.19`
+Current version: `0.1.20`
 
 ## Features (V1)
 - PIN + JWK auth bootstrap flow (`--auth-pin`) to obtain a Plex JWT without legacy token
@@ -24,6 +24,7 @@ Current version: `0.1.19`
 python -m plexmatch --auth-pin
 python -m plexmatch --auth-pin --auth-wait 90
 python -m plexmatch --list-users
+python -m plexmatch --user-a self --user-b "Joy"
 python -m plexmatch --user-a "Dylan" --user-b "Joy"
 python -m plexmatch --user-a "Dylan" --user-b "Joy" --type movies --top 10
 python -m plexmatch --user-a "Dylan" --user-b "Joy" --random
@@ -59,6 +60,7 @@ python -m plexmatch --user-a "Dylan" --user-b "Joy" --format json
 
 
 ## Changelog
+- 0.1.20: Include the signed-in Plex account as `self` in `--list-users` and route `--user-a self`/`me` through the Discover watchlist endpoint.
 - 0.1.19: Use Plex's XML user-sharing API for `--list-users` and replace raw 401 tracebacks with sanitized token guidance.
 - 0.1.18: Align PIN auth URLs and JWT payloads with PlexAPI's current OAuth helper so Plex displays `PlexMatch` instead of `0` and receives nonce/scope claims.
 - 0.1.17: Fix PIN auth exchange by signing device JWTs with the registered JWK `kid`, replacing expired/old PIN sessions, and sanitizing auth HTTP errors.

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 class User:
     id: str
     title: str
+    is_self: bool = False
 
 
 @dataclass(frozen=True)
