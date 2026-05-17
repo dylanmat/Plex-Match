@@ -17,9 +17,9 @@ class PlexApi:
             "Accept": "application/json",
             "Content-Type": "application/json",
             "X-Plex-Product": "PlexMatch",
-            "X-Plex-Version": "0.1.8",
+            "X-Plex-Version": "0.1.10",
             "X-Plex-Client-Identifier": "plexmatch-cli",
-            "User-Agent": "plexmatch/0.1.8",
+            "User-Agent": "plexmatch/0.1.10",
         }
 
     def _header_variants(self) -> list[dict[str, str]]:

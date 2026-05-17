@@ -47,10 +47,27 @@ def main() -> int:
     p.add_argument("--top", type=int)
     p.add_argument("--type", choices=["all", "movie", "show", "movies", "shows"], default="all")
     p.add_argument("--format", choices=["table", "json"], default="table")
+    p.add_argument("--auth-pin", action="store_true", help="Start/poll Plex PIN+JWK auth flow and print JWT.")
+    p.add_argument("--client-id", default="plexmatch-cli", help="Plex client identifier for PIN+JWK auth.")
     args = p.parse_args()
 
     assert_runtime_dependencies()
     from plexmatch.api.graphql import PlexApi
+
+    if args.auth_pin:
+        from plexmatch.api.auth import exchange_pin_for_token, load_pin_auth_session, start_pin_auth
+
+        session = load_pin_auth_session()
+        if session is None:
+            session = start_pin_auth(args.client_id)
+            print("Open this URL in a browser and sign in:")
+            print(session.auth_url)
+            raise SystemExit("PIN session created. Run the same command again after approval.")
+        token = exchange_pin_for_token(session)
+        if not token:
+            raise SystemExit("PIN is not approved yet. Finish browser auth and run again.")
+        print(token)
+        return 0
 
     token = token_from_env_or_arg(args.token)
     api = PlexApi(token)

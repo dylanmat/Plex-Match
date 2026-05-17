@@ -3,7 +3,9 @@
 All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
-- No unreleased changes.
+- Add Plex Option 1 authentication flow: generate PIN with device JWK, direct user to Plex auth URL, and exchange approved PIN for JWT token via `--auth-pin`.
+- Add local short-lived PIN session file (`.plexmatch_pin_auth.json`) to support retrying token exchange after browser approval.
+- Bump project/package version to `0.1.10`.
 
 ## [0.1.9] - 2026-05-17
 - Document Plex JWT authentication expectations for users: PIN/JWK registration paths, nonce-based refresh flow, and 7-day token rotation guidance.
