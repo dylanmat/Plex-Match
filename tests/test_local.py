@@ -28,10 +28,10 @@ def test_local_api_reads_sections_and_items_with_guid_metadata(monkeypatch: pyte
             200,
             text=(
                 '<MediaContainer size="1">'
-                '<Metadata title="Alien" year="1979" type="movie" guid="plex://movie/1">'
+                '<Video title="Alien" year="1979" type="movie" guid="plex://movie/1">'
                 '<Guid id="imdb://tt0078748" />'
                 '<Guid id="tmdb://348" />'
-                "</Metadata>"
+                "</Video>"
                 "</MediaContainer>"
             ),
             request=request,
@@ -62,7 +62,7 @@ def test_local_api_missing_guids_falls_back_to_title_year(monkeypatch: pytest.Mo
             )
         return httpx.Response(
             200,
-            text='<MediaContainer><Metadata title="Cargo" year="2017" type="movie" /></MediaContainer>',
+            text='<MediaContainer><Video title="Cargo" year="2017" type="movie" /></MediaContainer>',
             request=request,
         )
 
@@ -76,7 +76,7 @@ def test_local_api_missing_guids_falls_back_to_title_year(monkeypatch: pytest.Mo
 def test_availability_prefers_stable_ids_and_falls_back_to_title_year() -> None:
     candidate_items = [
         ("k1", Item("Wrong Title", 1979, "movie", None, "tt0078748", None), "both"),
-        ("k2", Item("Cargo", 2017, "movie", None, None, None), "both"),
+        ("k2", Item("Cargo", 2017, "movie", "plex://movie/cloud-id", None, None), "both"),
         ("k3", Item("Missing", 2020, "movie", None, None, None), "user_a"),
     ]
     local_items = [

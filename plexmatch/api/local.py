@@ -64,7 +64,7 @@ class LocalPlexApi:
             f"/library/sections/{section_key}/all",
             {"includeGuids": 1},
         )
-        return [_item_from_metadata(metadata) for metadata in root.findall("Metadata") if metadata.attrib.get("title")]
+        return [_item_from_metadata(metadata) for metadata in _media_elements(root) if metadata.attrib.get("title")]
 
 
 def availability_for_candidates(
@@ -79,9 +79,14 @@ def availability_for_candidates(
 
 def _is_available_locally(item: Item, local_items: list[Item]) -> bool:
     ids = _identity_values(item)
-    if ids:
-        return any(ids & _identity_values(local_item) for local_item in local_items)
+    if ids and any(ids & _identity_values(local_item) for local_item in local_items):
+        return True
     return any(_title_year_match(item, local_item) for local_item in local_items)
+
+
+def _media_elements(root: ElementTree.Element) -> list[ElementTree.Element]:
+    media_tags = {"Metadata", "Video", "Directory"}
+    return [element for element in list(root) if element.tag in media_tags]
 
 
 def _item_from_metadata(metadata: ElementTree.Element) -> Item:
