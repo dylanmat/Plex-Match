@@ -4,6 +4,13 @@ All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
 
+## [0.1.29] - 2026-05-17
+- Change `--random` to high-confidence score-weighted selection by default.
+- Add explicit `--random high` and `--random low` modes.
+- Use `--random low` for uniform random selection that ignores score.
+- Add regression tests for weighted and uniform random selection behavior.
+- Bump project/package version to `0.1.29`.
+
 ## [0.1.28] - 2026-05-17
 - Add cross-user support scoring for comparison candidates.
 - Add `+5` to an item's score for each other accessible Plex user whose watchlist contains that item.

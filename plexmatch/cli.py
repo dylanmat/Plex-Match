@@ -1,12 +1,11 @@
 import argparse
 import importlib
 import os
-import random
 import time
 
 from plexmatch.matching import candidates, support_counts
 from plexmatch.output import print_matches, print_users
-from plexmatch.scoring import score_candidates
+from plexmatch.scoring import pick_random_match, score_candidates
 
 
 REQUIRED_PACKAGES = ("httpx",)
@@ -44,7 +43,14 @@ def main() -> int:
     p.add_argument("--list-users", action="store_true")
     p.add_argument("--user-a")
     p.add_argument("--user-b")
-    p.add_argument("--random", action="store_true", dest="pick_random")
+    p.add_argument(
+        "--random",
+        nargs="?",
+        const="high",
+        choices=["high", "low"],
+        dest="random_mode",
+        help="Pick one result. Use high for score-weighted selection or low for uniform selection.",
+    )
     p.add_argument("--top", type=int)
     p.add_argument("--type", choices=["all", "movie", "show", "movies", "shows"], default="all")
     p.add_argument("--format", choices=["table", "json"], default="table")
@@ -162,8 +168,8 @@ def main() -> int:
         found = score_candidates(candidate_items, support_counts(candidate_items, other_watchlists, normalized_type))
         if not found:
             raise SystemExit("No watchlist items found for the selected users and type.")
-        if args.pick_random:
-            found = [random.choice(found)]
+        if args.random_mode:
+            found = [pick_random_match(found, args.random_mode)]
         print_matches(found, args.format, args.top)
     except (PlexAuthError, PlexApiError) as exc:
         raise SystemExit(str(exc))

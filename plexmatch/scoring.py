@@ -1,9 +1,11 @@
+import random
+
 from plexmatch.models import Item, Match
 
 
 SOURCE_SCORES = {
     "both": 100,
-    "user_b": 25,
+    "user_b": 10,
     "user_a": 10,
 }
 
@@ -32,3 +34,14 @@ def score_candidates(candidates: list[tuple[str, Item, str]], support_counts: di
 
 def _sort_matches(scored: list[Match]) -> list[Match]:
     return sorted(scored, key=lambda m: (-m.score, m.title.lower(), m.year or 0))
+
+
+def pick_random_match(matches: list[Match], mode: str = "high") -> Match:
+    if not matches:
+        raise ValueError("Cannot pick from an empty match list.")
+    if mode == "low":
+        return random.choice(matches)
+    if mode == "high":
+        weights = [max(match.score, 1) for match in matches]
+        return random.choices(matches, weights=weights, k=1)[0]
+    raise ValueError(f"Unknown random mode: {mode}")

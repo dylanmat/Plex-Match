@@ -6,7 +6,7 @@ PlexMatch is a Python command-line tool for comparing two Plex users' watchlists
 V1 uses a Plex community/GraphQL approach, normalizes entries by stable IDs, finds overlap, scores matches, and can randomly pick one title.
 
 ## Version
-Current version: `0.1.28`
+Current version: `0.1.29`
 
 ## Features (V1)
 - PIN + JWK auth bootstrap flow (`--auth-pin`) to obtain a Plex JWT without legacy token
@@ -18,7 +18,7 @@ Current version: `0.1.28`
 - Match overlaps and deterministic scoring
 - Diagnostic comparison output lists all filtered watchlist items with source labels (`both`, `user_a`, `user_b`)
 - Output as table or JSON
-- Filters and selection flags: `--type`, `--top`, `--random`
+- Filters and selection flags: `--type`, `--top`, `--random high`, `--random low`
 
 ## CLI Examples
 ```bash
@@ -29,6 +29,7 @@ python -m plexmatch --user-a self --user-b "Joy"
 python -m plexmatch --user-a "Dylan" --user-b "Joy"
 python -m plexmatch --user-a "Dylan" --user-b "Joy" --type movies --top 10
 python -m plexmatch --user-a "Dylan" --user-b "Joy" --random
+python -m plexmatch --user-a "Dylan" --user-b "Joy" --random low
 python -m plexmatch --user-a "Dylan" --user-b "Joy" --format json
 ```
 
@@ -61,6 +62,7 @@ python -m plexmatch --user-a "Dylan" --user-b "Joy" --format json
 
 
 ## Changelog
+- 0.1.29: Add high-confidence score-weighted random selection and low-confidence uniform random selection.
 - 0.1.28: Add cross-user support scoring: each other accessible user with a candidate item in their watchlist adds +5 to that item's score.
 - 0.1.27: Improve watchlist matching when friend items lack years by matching unique same-title entries if one side is missing the year, and request richer friend watchlist fields where Plex allows them.
 - 0.1.26: List and score all filtered watchlist candidates instead of suppressing one-sided items when no strict overlaps are detected.

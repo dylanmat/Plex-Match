@@ -1,5 +1,5 @@
-from plexmatch.models import Item
-from plexmatch.scoring import score_candidates, score_items
+from plexmatch.models import Item, Match
+from plexmatch.scoring import pick_random_match, score_candidates, score_items
 
 
 def test_scoring_is_deterministic() -> None:
@@ -38,3 +38,44 @@ def test_candidate_scoring_adds_support_bonus() -> None:
         ("Both", 110, 2),
         ("Only B", 30, 1),
     ]
+
+
+def test_high_confidence_random_uses_score_weights(monkeypatch) -> None:
+    matches = [
+        Match("k1", "Low", 2000, "movie", 10),
+        Match("k2", "High", 2001, "movie", 100),
+    ]
+    captured: dict[str, object] = {}
+
+    def fake_choices(population, weights, k):
+        captured["population"] = population
+        captured["weights"] = weights
+        captured["k"] = k
+        return [population[1]]
+
+    monkeypatch.setattr("plexmatch.scoring.random.choices", fake_choices)
+
+    picked = pick_random_match(matches, "high")
+
+    assert picked.title == "High"
+    assert captured["weights"] == [10, 100]
+    assert captured["k"] == 1
+
+
+def test_low_confidence_random_ignores_score(monkeypatch) -> None:
+    matches = [
+        Match("k1", "Low", 2000, "movie", 10),
+        Match("k2", "High", 2001, "movie", 100),
+    ]
+    captured: dict[str, object] = {}
+
+    def fake_choice(population):
+        captured["population"] = population
+        return population[0]
+
+    monkeypatch.setattr("plexmatch.scoring.random.choice", fake_choice)
+
+    picked = pick_random_match(matches, "low")
+
+    assert picked.title == "Low"
+    assert captured["population"] == matches
