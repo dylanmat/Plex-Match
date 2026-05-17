@@ -39,7 +39,7 @@ class PinAuthSession:
                 "forwardUrl": "https://app.plex.tv/desktop",
             }
         )
-        return f"https://app.plex.tv/auth?{query}"
+        return f"https://app.plex.tv/auth#!?{query}"
 
     @property
     def link_url(self) -> str:
