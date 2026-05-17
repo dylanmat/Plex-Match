@@ -23,3 +23,18 @@ def test_candidate_scoring_prioritizes_overlaps_then_recommendations() -> None:
         ("Only B", 25, "user_b"),
         ("Only A", 10, "user_a"),
     ]
+
+
+def test_candidate_scoring_adds_support_bonus() -> None:
+    scored = score_candidates(
+        [
+            ("k1", Item("Both", 2001, "movie", None, None, None), "both"),
+            ("k2", Item("Only B", 2002, "movie", None, None, None), "user_b"),
+        ],
+        {"k1": 2, "k2": 1},
+    )
+
+    assert [(m.title, m.score, m.support_count) for m in scored] == [
+        ("Both", 110, 2),
+        ("Only B", 30, 1),
+    ]

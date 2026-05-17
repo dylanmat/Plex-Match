@@ -1,4 +1,4 @@
-from plexmatch.matching import candidates, overlaps
+from plexmatch.matching import candidates, overlaps, support_counts
 from plexmatch.models import Item
 
 
@@ -47,3 +47,17 @@ def test_candidates_do_not_match_same_title_with_different_known_years() -> None
         ("Hamlet", 1948, "user_b"),
         ("Hamlet", 1996, "user_a"),
     ]
+
+
+def test_support_counts_count_other_users_with_matching_items() -> None:
+    candidate_items = [
+        ("k1", Item("Oppenheimer", 2023, "movie", None, None, None), "both"),
+        ("k2", Item("Cargo", 2017, "movie", None, None, None), "user_a"),
+    ]
+    other_watchlists = [
+        [Item("Oppenheimer", None, "movie", None, None, None), Item("Cargo", 2017, "movie", None, None, None)],
+        [Item("Oppenheimer", 2023, "movie", None, None, None)],
+        [Item("Oppenheimer", 2023, "show", None, None, None)],
+    ]
+
+    assert support_counts(candidate_items, other_watchlists, "movie") == {"k1": 2, "k2": 1}

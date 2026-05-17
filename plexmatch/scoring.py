@@ -13,15 +13,17 @@ def score_items(pairs: list[tuple[str, Item]]) -> list[Match]:
     return _sort_matches(scored)
 
 
-def score_candidates(candidates: list[tuple[str, Item, str]]) -> list[Match]:
+def score_candidates(candidates: list[tuple[str, Item, str]], support_counts: dict[str, int] | None = None) -> list[Match]:
+    support_counts = support_counts or {}
     scored = [
         Match(
             key=key,
             title=item.title,
             year=item.year,
             media_type=item.media_type,
-            score=SOURCE_SCORES.get(source, 0),
+            score=SOURCE_SCORES.get(source, 0) + (support_counts.get(key, 0) * 5),
             source=source,
+            support_count=support_counts.get(key, 0),
         )
         for key, item, source in candidates
     ]

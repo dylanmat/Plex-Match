@@ -28,3 +28,4 @@ class Match:
     media_type: str | None
     score: int
     source: str = "both"
+    support_count: int = 0

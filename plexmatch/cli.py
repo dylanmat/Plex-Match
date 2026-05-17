@@ -4,7 +4,7 @@ import os
 import random
 import time
 
-from plexmatch.matching import candidates
+from plexmatch.matching import candidates, support_counts
 from plexmatch.output import print_matches, print_users
 from plexmatch.scoring import score_candidates
 
@@ -147,7 +147,19 @@ def main() -> int:
             raise SystemExit("One or both users are not accessible from this token. Use --list-users to see names, or use self/me for your own account.")
 
         normalized_type = {"movies": "movie", "shows": "show"}.get(args.type, args.type)
-        found = score_candidates(candidates(api.watchlist(a.id), api.watchlist(b.id), normalized_type))
+        items_a = api.watchlist(a.id)
+        items_b = api.watchlist(b.id)
+        candidate_items = candidates(items_a, items_b, normalized_type)
+        other_watchlists = []
+        selected_ids = {a.id, b.id}
+        for user in users:
+            if user.id in selected_ids:
+                continue
+            try:
+                other_watchlists.append(api.watchlist(user.id))
+            except PlexApiError:
+                continue
+        found = score_candidates(candidate_items, support_counts(candidate_items, other_watchlists, normalized_type))
         if not found:
             raise SystemExit("No watchlist items found for the selected users and type.")
         if args.pick_random:

@@ -4,6 +4,14 @@ All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
 
+## [0.1.28] - 2026-05-17
+- Add cross-user support scoring for comparison candidates.
+- Add `+5` to an item's score for each other accessible Plex user whose watchlist contains that item.
+- Include support counts in table, plain-text, and JSON output.
+- Skip inaccessible secondary watchlists during support scoring so private friends do not block the main comparison.
+- Add regression coverage for support matching and score bonuses.
+- Bump project/package version to `0.1.28`.
+
 ## [0.1.27] - 2026-05-17
 - Improve candidate matching by treating unique same-title entries as overlaps when one side lacks a year.
 - Preserve title/year separation when both sides have known but different years.

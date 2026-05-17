@@ -43,6 +43,20 @@ def candidates(items_a: list[Item], items_b: list[Item], media_type: str = "all"
     return sorted(out, key=lambda pair: (pair[2] != "both", pair[1].title.lower(), pair[1].year or 0))
 
 
+def support_counts(
+    candidate_items: list[tuple[str, Item, str]],
+    other_watchlists: list[list[Item]],
+    media_type: str = "all",
+) -> dict[str, int]:
+    counts = {key: 0 for key, _, _ in candidate_items}
+    for watchlist in other_watchlists:
+        filtered = [item for item in watchlist if media_type == "all" or item.media_type == media_type]
+        for key, item, _ in candidate_items:
+            if any(_items_match(item, other) for other in filtered):
+                counts[key] += 1
+    return counts
+
+
 def _fallback_title_matches(idx_a: dict[str, Item], idx_b: dict[str, Item]) -> list[tuple[str, str]]:
     titles_a = _unique_title_index(idx_a)
     titles_b = _unique_title_index(idx_b)
@@ -54,6 +68,16 @@ def _fallback_title_matches(idx_a: dict[str, Item], idx_b: dict[str, Item]) -> l
             continue
         matches.append((key_a, key_b))
     return matches
+
+
+def _items_match(a: Item, b: Item) -> bool:
+    if a.media_type and b.media_type and a.media_type != b.media_type:
+        return False
+    if item_key(a) == item_key(b):
+        return True
+    if normalize_title(a.title) != normalize_title(b.title):
+        return False
+    return not (a.year and b.year and a.year != b.year)
 
 
 def _unique_title_index(index: dict[str, Item]) -> dict[str, tuple[str, Item]]:
