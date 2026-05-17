@@ -5,6 +5,9 @@ All notable changes to PlexMatch should be documented here.
 ## [Unreleased]
 - No unreleased changes.
 
+## [0.1.6] - 2026-05-17
+- Add `test_api.py`, a standalone Plex API connectivity test script with CLI arguments, helpful status output, and clearer error diagnostics.
+
 ## [0.1.5] - 2026-05-17
 - Normalize provided Plex tokens by trimming leading/trailing whitespace before API use.
 - Add additional Plex client headers (`X-Plex-Product`, `X-Plex-Version`, `X-Plex-Client-Identifier`, `Content-Type`) on GraphQL requests to improve compatibility with Plex auth checks.
