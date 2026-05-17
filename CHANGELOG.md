@@ -5,6 +5,9 @@ All notable changes to PlexMatch should be documented here.
 ## [Unreleased]
 - No unreleased changes.
 
+## [0.1.4] - 2026-05-17
+- Fix `401 Unauthorized` failures against `https://community.plex.tv/api` by retrying GraphQL requests with `Authorization: Bearer <token>` when `X-Plex-Token` auth is rejected.
+
 ## [0.1.3] - 2026-05-17
 - Fix `python -m plexmatch --list-users` when `rich` is not installed by using a plain-text output fallback.
 - Treat `rich` as optional at startup while keeping JSON and text output available.
