@@ -3,11 +3,13 @@ import importlib
 import os
 import random
 
-
-from plexmatch.api.graphql import PlexApi
 from plexmatch.matching import overlaps
 from plexmatch.output import print_matches, print_users
 from plexmatch.scoring import score_items
+
+
+REQUIRED_PACKAGES = ("httpx", "rich")
+OPTIONAL_PACKAGES = ("dotenv",)
 
 
 def token_from_env_or_arg(arg_token: str | None) -> str:
@@ -18,6 +20,21 @@ def token_from_env_or_arg(arg_token: str | None) -> str:
     if not token:
         raise ValueError("Missing Plex token. Set PLEX_TOKEN in environment/.env or pass --token.")
     return token
+
+
+def missing_required_packages() -> list[str]:
+    return [name for name in REQUIRED_PACKAGES if importlib.util.find_spec(name) is None]
+
+
+def assert_runtime_dependencies() -> None:
+    missing = missing_required_packages()
+    if not missing:
+        return
+    joined = ", ".join(missing)
+    raise SystemExit(
+        f"Missing required dependencies: {joined}. "
+        "Run `pip install -r requirements.txt` and retry."
+    )
 
 
 def main() -> int:
@@ -31,6 +48,9 @@ def main() -> int:
     p.add_argument("--type", choices=["all", "movie", "show", "movies", "shows"], default="all")
     p.add_argument("--format", choices=["table", "json"], default="table")
     args = p.parse_args()
+
+    assert_runtime_dependencies()
+    from plexmatch.api.graphql import PlexApi
 
     token = token_from_env_or_arg(args.token)
     api = PlexApi(token)
