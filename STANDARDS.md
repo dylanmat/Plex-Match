@@ -1,34 +1,44 @@
 # STANDARDS
 
 ## Coding Standards
-- Python: 4-space indentation, type hints on public APIs, clear naming.
-- Use `snake_case` for modules/functions, `PascalCase` for classes, `UPPER_SNAKE_CASE` for constants.
-- Keep provider-specific logic behind clear interfaces.
+- Python 3.11+.
+- 4-space indentation.
+- Type hints on public APIs.
+- Use `snake_case` for modules/functions, `PascalCase` for classes, and `UPPER_SNAKE_CASE` for constants.
+- Keep Plex-specific logic behind API interfaces.
+- Keep GraphQL query assumptions centralized and documented.
+- Prefer small, testable functions for normalization, matching, scoring, and output formatting.
+
+## CLI Standards
+- Use clear flags and predictable exit codes.
+- Support `--help` for all commands/options.
+- Support `.env` loading without requiring it.
+- Do not echo secrets.
+- Provide useful error messages for invalid tokens, inaccessible users, empty watchlists, and no overlaps.
 
 ## Testing Standards
-- Use deterministic tests where practical (fixed seeds, stable fixtures, mocked provider calls).
-- Separate unit/integration tests from slower `evals/` runs.
-- Add regression tests for prompt, parser, and safety-critical behavior changes.
+- Use deterministic unit tests with stable fixtures.
+- Mock Plex API calls in unit tests.
+- Keep live API calls out of default test runs.
+- Add regression tests for normalization and duplicate handling.
+- Separate integration tests from unit tests.
 
 ## Documentation Standards
-- Keep root baseline docs current: `CONTEXT.md`, `README.md`, `ARCHITECTURE.md`, `SECURITY.md`, `STANDARDS.md`, `DECISIONS.md`, `ROADMAP.md`, `CHANGELOG.md`.
-- Keep `README.md` high-level; place deep technical detail in the dedicated doc.
-- Record major technical and product decisions in `DECISIONS.md`.
-
-## Frontend Standards
-For plain `html/css/js`, prefer Bootstrap before custom CSS.
+- Keep `README.md` high-level.
+- Put system behavior and assumptions in `CONTEXT.md`.
+- Put component and data-flow details in `ARCHITECTURE.md`.
+- Record major decisions in `DECISIONS.md`.
+- Update `ROADMAP.md` when priorities or phases change.
+- Update `CHANGELOG.md` for user-facing or implementation-facing changes.
 
 ## Review Standards
-- PRs require passing tests/lint and clear change rationale.
-- Include impact notes when AI behavior, prompts, or eval outcomes change.
-- Link changed code to updated docs when conventions or behavior change.
+- PRs require summary, rationale, and verification evidence.
+- Minimum verification: `ruff check .` and `pytest -q`.
+- Include risk notes when Plex API assumptions change.
+- Update docs when behavior, command syntax, security posture, or architecture changes.
 
 ## Operational Standards
-- Use structured logging; avoid logging sensitive content.
-- Define basic run/rollback expectations for production-impacting changes.
-- Track critical dependencies and provider configuration changes in PRs.
-
-## AI-Specific Standards
-- Version prompts intentionally (for example `feature_name.v2.md`).
-- Validate behavior with targeted evals before merge.
-- Document provider fallback assumptions and output validation rules.
+- Use structured logging where practical.
+- Default logging level should not expose sensitive data.
+- Debug logs may include response shapes but must redact tokens and sensitive identifiers where possible.
+- Provide a clear bug report template later if the project becomes public.

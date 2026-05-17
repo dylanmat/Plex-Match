@@ -1,36 +1,48 @@
 # SECURITY
 
 ## Security Scope and Ownership
-- Define who owns security decisions and policy maintenance.
-- State which environments, services, and contributors this policy covers.
+This policy covers local development, CLI execution, Plex token handling, logs, generated output, and future integrations.
+
+The project maintainer owns security decisions until formal ownership is assigned.
 
 ## Credential Handling Policy
-- Store secrets only in approved secret stores or local `.env` files (never commit credentials).
-- Use least-privilege credentials and separate keys by environment.
-- Rotate credentials on schedule and immediately after suspected exposure.
-- Do not place tokens, API keys, or private credentials in logs, prompts, screenshots, or tickets.
+- Store Plex tokens only in approved local mechanisms such as environment variables or `.env` files.
+- Never commit `.env` files or credentials.
+- Provide `.env.example` with placeholder values only.
+- Never print tokens in normal output, debug output, logs, exceptions, screenshots, or test fixtures.
+- Do not request or store Plex passwords.
+- Prefer Plex tokens with the minimum practical access.
+- Rotate tokens immediately after suspected exposure.
 
 ## Data Access and Classification Policy
-- Define data classes (public, internal, sensitive, restricted) and handling rules for each.
-- Grant data access by role and minimum required scope.
-- Restrict direct production data access; prefer audited access paths.
-- Define retention/deletion expectations for logs, prompts, and model outputs.
+- Public: project docs, code, and sample non-real fixtures.
+- Internal: normalized metadata and watchlist comparison output.
+- Sensitive: Plex tokens, account identifiers, user IDs, friend lists, watchlists, and viewing activity.
+- Restricted: any credential, authentication artifact, or personally identifying account detail.
 
 ## AI Restrictions and Safety Boundaries
-- Define disallowed AI use cases and prohibited output categories.
-- Define allowed model/provider list and escalation path for exceptions.
-- Require validation/guardrails for model outputs before high-impact actions.
-- Define when human review is mandatory (for example legal, financial, safety-critical outputs).
+- Do not paste real Plex tokens into prompts or tickets.
+- Do not include private user watchlists in public examples.
+- Do not use AI tools to infer, guess, or reconstruct credentials.
+- Human review is required before adding new external integrations that handle tokens or user watchlist data.
 
 ## Environment and Deployment Controls
-- Separate dev/stage/prod credentials, data, and access controls.
-- Require auditable change history for security-sensitive configuration.
-- Document baseline controls for network access, dependency updates, and runtime hardening.
+- V1 is local-only and should not expose a listening service.
+- Future web or hosted modes must receive a separate security review.
+- Keep dev/test credentials separate from any real user tokens where practical.
+- Avoid persistent storage of user watchlists in V1.
+- If caching is added, document retention and deletion behavior.
+
+## Dependency and Runtime Controls
+- Pin or constrain dependencies once implementation stabilizes.
+- Use dependency scanning where practical.
+- Avoid packages that require unnecessary credential or browser access.
 
 ## Incident Reporting and Response
-- Define vulnerability reporting channel and response ownership.
-- Define triage priorities and containment expectations.
-- Document communication and remediation follow-up requirements.
+- Treat leaked Plex tokens as compromised.
+- Remove exposed tokens from git history or issue trackers where possible.
+- Rotate affected tokens immediately.
+- Document security-impacting changes in `CHANGELOG.md` and `DECISIONS.md`.
 
 ## Compliance Notes
-List applicable regulatory, contractual, or internal compliance requirements.
+No formal regulatory scope is currently defined. Reassess if this becomes hosted, multi-user, monetized, or integrated with additional account providers.

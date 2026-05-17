@@ -1,26 +1,27 @@
 # AI Agent Workflow Guide
 
 ## Purpose
-`AGENTS.md` defines AI agents used in development workflows, their boundaries, and handoff rules.
+`AGENTS.md` defines AI agents used in PlexMatch development workflows, their boundaries, and handoff rules.
 
 ## Required Project Docs
 - `README.md`: high-level project description.
 - `CONTEXT.md`: system context for developers and AI tools.
-- `ARCHITECTURE.md`: AI system build and integration blueprint.
+- `ARCHITECTURE.md`: system build and integration blueprint.
 - `SECURITY.md`: security policy, credential handling, data access, AI restrictions.
 - `STANDARDS.md`: coding and operational standards.
-- `DECISIONS.md`: architectural decision record (ADRs).
+- `DECISIONS.md`: architectural decision record.
 - `ROADMAP.md`: project development priorities, sequencing, and status.
 - `CHANGELOG.md`: release history.
 
 ## Workflow Stages
 - Context intake: read `README.md`, `CONTEXT.md`, and current `DECISIONS.md`.
 - Design: update `ARCHITECTURE.md` and document tradeoffs.
-- Implementation: apply changes under `src/`, `prompts/`, `configs/`, and `scripts/`.
-- Verification: run tests/evals and record key evidence.
+- Implementation: apply changes under `src/`, `tests/`, `configs/`, and `scripts/`.
+- Verification: run tests and record key evidence.
 - Documentation and release: update affected docs and `CHANGELOG.md`.
 
 ## Agent Catalog
+
 ### Planner Agent
 - Purpose: turn requests into decision-complete implementation plans.
 - Inputs: user request, `CONTEXT.md`, `ARCHITECTURE.md`, `ROADMAP.md`.
@@ -28,16 +29,14 @@
 - Allowed actions: analysis, repo inspection, non-mutating checks.
 - Disallowed actions: editing files during planning-only tasks.
 - Handoff to: Implementer Agent.
-- Update triggers: planning workflow or acceptance criteria policy changes.
 
 ### Implementer Agent
 - Purpose: implement approved plans and keep behavior/docs aligned.
 - Inputs: approved plan, codebase state, standards and security policies.
 - Outputs: code/doc changes, test results summary, risk notes.
-- Allowed actions: edit files, run build/test/lint/eval commands.
-- Disallowed actions: bypassing security policy or undocumented behavior changes.
+- Allowed actions: edit files, run build/test/lint commands.
+- Disallowed actions: bypassing security policy, logging secrets, or undocumented behavior changes.
 - Handoff to: Reviewer Agent.
-- Update triggers: coding workflow, tooling, or execution constraints change.
 
 ### Reviewer Agent
 - Purpose: detect defects, regressions, and policy violations.
@@ -46,7 +45,6 @@
 - Allowed actions: static review, risk analysis, validation checks.
 - Disallowed actions: approving unresolved critical findings.
 - Handoff to: Implementer Agent or Docs Agent.
-- Update triggers: review gates or severity policy changes.
 
 ### Docs Agent
 - Purpose: keep required root docs accurate after changes.
@@ -55,30 +53,21 @@
 - Allowed actions: edit docs, improve cross-links, clarify ownership.
 - Disallowed actions: changing product behavior in docs-only tasks.
 - Handoff to: Release Agent.
-- Update triggers: document ownership or template structure changes.
 
 ### Release Agent
 - Purpose: finalize release notes and version-facing updates.
-- Inputs: merged changes, decisions, and test/eval outcomes.
+- Inputs: merged changes, decisions, and test outcomes.
 - Outputs: `CHANGELOG.md` updates and release summary.
 - Allowed actions: compile release deltas and readiness notes.
 - Disallowed actions: shipping without required validation evidence.
 - Handoff to: none.
-- Update triggers: release process or changelog policy changes.
 
 ## Coordination Rules
 - Do not skip handoffs when ownership changes between planning, implementation, review, docs, and release.
 - Resolve conflicts using source-of-truth docs in this order: `SECURITY.md`, `STANDARDS.md`, `ARCHITECTURE.md`, `CONTEXT.md`, `README.md`.
-- For plain `html/css/js` interfaces, prefer Bootstrap before custom CSS.
 - PowerShell is acceptable and preferred on Windows automation paths.
 
 ## Pull Request Policy for Agent Workflows
-- Include summary, rationale, and verification evidence (`pytest`, `ruff check`, eval notes as needed).
+- Include summary, rationale, and verification evidence.
+- Minimum verification: `ruff check .` and `pytest -q`.
 - Update `AGENTS.md` when agent roles, allowed actions, disallowed actions, handoffs, or update triggers change.
-Companion docs update rules when scope changes:
-- `CONTEXT.md` for assumptions, stakeholders, or guardrails.
-- `ARCHITECTURE.md` for AI wiring, provider strategy, or integrations.
-- `STANDARDS.md` for conventions, quality gates, or ops procedures.
-- `SECURITY.md` for credential, data-access, or AI safety policy changes.
-- `DECISIONS.md` for architecture changes, major tradeoffs, and superseded design choices.
-- `ROADMAP.md` for priority, sequencing, ownership, or milestone status changes.

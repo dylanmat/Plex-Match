@@ -1,52 +1,91 @@
 # ROADMAP
 
 ## Purpose
-Track project development priorities, sequencing, and delivery status.
+Track PlexMatch development priorities, sequencing, and delivery status.
 
 ## Now
-### Baseline Template Hardening
-- Goal: finalize required root documentation and workflow consistency.
-- Status: In Progress
-- Owner: Project Maintainers
-- Dependencies: None
-- Target Window: Current sprint
-- Success Criteria: All required docs exist with aligned ownership and update triggers.
-- Links: `AGENTS.md`, `CONTEXT.md`, `ARCHITECTURE.md`, `SECURITY.md`, `STANDARDS.md`
 
-### Quality Automation Foundation
-- Goal: add CI checks for lint and tests.
+### V1 CLI MVP
+- Goal: compare two Plex users' visible watchlists and show overlaps.
 - Status: Planned
-- Owner: Project Maintainers
-- Dependencies: baseline scripts and test entry points
-- Target Window: Next sprint
-- Success Criteria: CI runs `ruff check` and `pytest` on pull requests.
-- Links: `STANDARDS.md`, `CHANGELOG.md`
+- Owner: Project Maintainer
+- Dependencies: Plex token, Plex community/GraphQL access, visible friend/watchlist privacy settings.
+- Success Criteria:
+  - `--list-users` works.
+  - Two selected users' watchlists can be fetched.
+  - Overlaps are normalized and displayed.
+  - `--random` selects one result.
+  - `--format table|json` works.
+  - Unit tests cover normalization, matching, and scoring.
+
+### GraphQL Discovery and Hardening
+- Goal: isolate and document Plex GraphQL query behavior.
+- Status: Planned
+- Owner: Project Maintainer
+- Dependencies: API exploration and sample response shapes.
+- Success Criteria:
+  - Queries are centralized.
+  - Pagination is handled.
+  - Missing or changed fields fail gracefully.
+  - Debug mode helps inspect response shapes without exposing tokens.
 
 ## Next
-### Evaluation Harness
-- Goal: provide reusable eval execution and reporting baseline.
-- Status: Planned
-- Owner: Project Maintainers
-- Dependencies: stable prompt/versioning conventions
-- Target Window: Near term
-- Success Criteria: template includes eval runner pattern and result reporting guidance.
-- Links: `ARCHITECTURE.md`, `STANDARDS.md`
 
-### Deployment and Runbook Baseline
-- Goal: define deployment/runbook scaffolding for downstream projects.
+### V1.1 Filtering and Better Selection
+- Goal: make results easier to use for movie-night decisions.
 - Status: Planned
-- Owner: Project Maintainers
-- Dependencies: quality automation foundation
-- Target Window: Near term
-- Success Criteria: templates include runbook expectations and operational handoff guidance.
-- Links: `SECURITY.md`, `STANDARDS.md`
+- Success Criteria:
+  - Filter by movies, shows, or both.
+  - Add runtime filter where metadata supports it.
+  - Add rating filter where metadata supports it.
+  - Add weighted random picker.
+  - Exclude already watched where detectable.
+
+### V1.2 Local Availability Check
+- Goal: optionally identify whether a match is available on a configured local Plex server/library.
+- Status: Planned
+- Success Criteria:
+  - Accept local Plex server URL and token.
+  - Match local library items by GUID or metadata IDs.
+  - Add availability to score and output.
 
 ## Later
-### Project Scaffolding Automation
-- Goal: automate setup for new projects from this template.
+
+### V2 Local Cache
+- Goal: reduce repeated API calls and improve performance.
 - Status: Planned
-- Owner: Project Maintainers
-- Dependencies: stable documentation and workflow contract
-- Target Window: Longer term
-- Success Criteria: one-command bootstrap for docs, structure, and baseline scripts.
-- Links: `README.md`, `AGENTS.md`, `CHANGELOG.md`
+- Success Criteria:
+  - SQLite cache.
+  - Clear cache command.
+  - Configurable retention.
+  - No secrets stored in cache.
+
+### V3 Local Web UI
+- Goal: create a simple local movie-night interface.
+- Status: Planned
+- Success Criteria:
+  - Flask or FastAPI app.
+  - Select two users.
+  - View ranked matches.
+  - Reroll random pick.
+  - Apply filters interactively.
+
+### V4 Metadata and Import Integrations
+- Goal: improve matching and scoring beyond Plex metadata.
+- Status: Planned
+- Candidate Integrations:
+  - Trakt
+  - Letterboxd import
+  - IMDb list import
+  - TMDb enrichment
+
+### V5 Hosted / Group Mode
+- Goal: support multi-user watch parties and broader recommendations.
+- Status: Future
+- Candidate Features:
+  - Hosted app
+  - Voting
+  - Veto list
+  - Group sessions
+  - Mood filters
+  - Mobile-friendly UI
