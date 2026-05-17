@@ -1,2 +1,6 @@
+httpx
+python-dotenv
+pydantic
+rich
 pytest
 ruff
