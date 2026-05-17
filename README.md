@@ -6,7 +6,7 @@ PlexMatch is a Python command-line tool for comparing two Plex users' watchlists
 V1 uses a Plex community/GraphQL approach, normalizes entries by stable IDs, finds overlap, scores matches, and can randomly pick one title.
 
 ## Version
-Current version: `0.1.18`
+Current version: `0.1.19`
 
 ## Features (V1)
 - PIN + JWK auth bootstrap flow (`--auth-pin`) to obtain a Plex JWT without legacy token
@@ -42,6 +42,7 @@ python -m plexmatch --user-a "Dylan" --user-b "Joy" --format json
 ## Authentication (Plex JWT Recommended)
 - Plex now recommends JWT auth with short-lived (7 day) tokens and per-device key registration.
 - PlexMatch currently accepts a token via `--token` or `PLEX_TOKEN`; JWT tokens work in the same `X-Plex-Token` header path as legacy tokens.
+- After `python -m plexmatch --auth-pin` succeeds, save the printed JWT into `PLEX_TOKEN` or pass it with `--token`.
 - For new apps, prefer PIN + JWK registration (`POST https://clients.plex.tv/api/v2/pins`) then exchange with a device-signed JWT that includes the registered JWK `kid` header.
 - For existing legacy-token apps, register JWK at `POST https://clients.plex.tv/api/v2/auth/jwk`, then use nonce + signed device JWT refresh flow (`/auth/nonce` then `/auth/token`).
 - Plan for token refresh every 7 days. If token validation fails (for example, expired token), obtain a fresh JWT and rerun.
@@ -58,6 +59,7 @@ python -m plexmatch --user-a "Dylan" --user-b "Joy" --format json
 
 
 ## Changelog
+- 0.1.19: Use Plex's XML user-sharing API for `--list-users` and replace raw 401 tracebacks with sanitized token guidance.
 - 0.1.18: Align PIN auth URLs and JWT payloads with PlexAPI's current OAuth helper so Plex displays `PlexMatch` instead of `0` and receives nonce/scope claims.
 - 0.1.17: Fix PIN auth exchange by signing device JWTs with the registered JWK `kid`, replacing expired/old PIN sessions, and sanitizing auth HTTP errors.
 - 0.1.16: Fix PIN auth link routing by restoring hash-based `https://app.plex.tv/auth#!?...` format so browser approval completes instead of stalling on the Plex logo screen.

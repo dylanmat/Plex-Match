@@ -4,6 +4,14 @@ All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
 
+## [0.1.19] - 2026-05-17
+- Use Plex's `https://plex.tv/api/users/` XML endpoint as the primary source for `--list-users`.
+- Keep community GraphQL as a watchlist-specific integration instead of requiring it for user listing.
+- Replace raw Plex 401 tracebacks with sanitized guidance to refresh and use the current JWT.
+- Update Plex client version headers to `0.1.18` for API calls.
+- Add regression tests for XML user parsing and token rejection messages.
+- Bump project/package version to `0.1.19`.
+
 ## [0.1.18] - 2026-05-17
 - Align the browser auth URL with PlexAPI's current `https://app.plex.tv/auth/#!?...` format.
 - Add the full Plex device context to the auth URL and request headers so the consent screen identifies `PlexMatch` instead of `0`.

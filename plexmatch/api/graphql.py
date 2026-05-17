@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from xml.etree import ElementTree
+
 import httpx
 
 from plexmatch.models import Item, User
@@ -9,6 +11,15 @@ COMMUNITY_ENDPOINTS = [
     "https://community.plex.tv/api/v2",
 ]
 DISCOVER_ENDPOINT = "https://discover.provider.plex.tv"
+PLEX_TV_USERS_ENDPOINT = "https://plex.tv/api/users/"
+
+
+class PlexAuthError(RuntimeError):
+    pass
+
+
+class PlexApiError(RuntimeError):
+    pass
 
 
 class PlexApi:
@@ -20,9 +31,9 @@ class PlexApi:
             "Accept": "application/json",
             "Content-Type": "application/json",
             "X-Plex-Product": "PlexMatch",
-            "X-Plex-Version": "0.1.11",
+            "X-Plex-Version": "0.1.18",
             "X-Plex-Client-Identifier": "plexmatch-cli",
-            "User-Agent": "plexmatch/0.1.11",
+            "User-Agent": "plexmatch/0.1.18",
         }
 
     def _header_variants(self) -> list[dict[str, str]]:
@@ -40,8 +51,29 @@ class PlexApi:
                     return r.json()
                 last_response = r
         if last_response is not None:
-            last_response.raise_for_status()
+            raise PlexAuthError(
+                "Plex rejected this token for the community API. "
+                "Run `python -m plexmatch --auth-pin`, then save the new token to PLEX_TOKEN or pass it with --token."
+            )
         raise RuntimeError("Request failed before receiving a response.")
+
+    def _get_plex_tv_xml(self, url: str) -> ElementTree.Element:
+        headers = {
+            **self._base_headers(),
+            "Accept": "application/xml",
+        }
+        headers.pop("Content-Type", None)
+        response = httpx.get(url, params={"X-Plex-Token": self._token}, headers=headers, timeout=30)
+        if response.status_code == 401:
+            raise PlexAuthError(
+                "Plex rejected this token. "
+                "Run `python -m plexmatch --auth-pin`, then save the new token to PLEX_TOKEN or pass it with --token."
+            )
+        response.raise_for_status()
+        try:
+            return ElementTree.fromstring(response.text)
+        except ElementTree.ParseError as exc:
+            raise PlexApiError("Plex returned an invalid XML response.") from exc
 
     def _get_discover(self, path: str, params: dict[str, int | str]) -> dict:
         r = httpx.get(
@@ -54,6 +86,22 @@ class PlexApi:
         return r.json()
 
     def users(self) -> list[User]:
+        users = self._users_from_plex_tv()
+        if users:
+            return users
+        return self._users_from_community()
+
+    def _users_from_plex_tv(self) -> list[User]:
+        root = self._get_plex_tv_xml(PLEX_TV_USERS_ENDPOINT)
+        users: list[User] = []
+        for element in root.findall("User"):
+            user_id = element.attrib.get("uuid") or element.attrib.get("id") or ""
+            title = element.attrib.get("title") or element.attrib.get("username") or ""
+            if user_id and title:
+                users.append(User(id=str(user_id), title=title))
+        return users
+
+    def _users_from_community(self) -> list[User]:
         query = """
         query GetAllFriends {
           allFriendsV2 { user { id username } }

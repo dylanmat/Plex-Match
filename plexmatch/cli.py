@@ -54,7 +54,7 @@ def main() -> int:
     args = p.parse_args()
 
     assert_runtime_dependencies()
-    from plexmatch.api.graphql import PlexApi
+    from plexmatch.api.graphql import PlexApi, PlexAuthError, PlexApiError
 
     if args.auth_pin:
         from plexmatch.api.auth import (
@@ -127,25 +127,28 @@ def main() -> int:
     token = token_from_env_or_arg(args.token)
     api = PlexApi(token)
 
-    if args.list_users:
-        print_users(api.users(), args.format)
-        return 0
-
-    if not (args.user_a and args.user_b):
-        p.error("Use --list-users or provide --user-a and --user-b.")
-
-    users = api.users()
-    by_name = {u.title.lower(): u for u in users}
     try:
-        a, b = by_name[args.user_a.lower()], by_name[args.user_b.lower()]
-    except KeyError:
-        raise SystemExit("One or both users are not accessible from this token.")
+        if args.list_users:
+            print_users(api.users(), args.format)
+            return 0
 
-    normalized_type = {"movies": "movie", "shows": "show"}.get(args.type, args.type)
-    found = score_items(overlaps(api.watchlist(a.id), api.watchlist(b.id), normalized_type))
-    if not found:
-        raise SystemExit("No overlaps found.")
-    if args.pick_random:
-        found = [random.choice(found)]
-    print_matches(found, args.format, args.top)
+        if not (args.user_a and args.user_b):
+            p.error("Use --list-users or provide --user-a and --user-b.")
+
+        users = api.users()
+        by_name = {u.title.lower(): u for u in users}
+        try:
+            a, b = by_name[args.user_a.lower()], by_name[args.user_b.lower()]
+        except KeyError:
+            raise SystemExit("One or both users are not accessible from this token.")
+
+        normalized_type = {"movies": "movie", "shows": "show"}.get(args.type, args.type)
+        found = score_items(overlaps(api.watchlist(a.id), api.watchlist(b.id), normalized_type))
+        if not found:
+            raise SystemExit("No overlaps found.")
+        if args.pick_random:
+            found = [random.choice(found)]
+        print_matches(found, args.format, args.top)
+    except (PlexAuthError, PlexApiError) as exc:
+        raise SystemExit(str(exc))
     return 0
