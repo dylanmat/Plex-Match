@@ -39,6 +39,11 @@ class PinAuthSession:
     def link_url(self) -> str:
         return "https://plex.tv/link"
 
+    @property
+    def manual_link_code(self) -> str | None:
+        normalized = self.code.strip()
+        return normalized if normalized.isdigit() and len(normalized) == 4 else None
+
     def private_key(self) -> Ed25519PrivateKey:
         return Ed25519PrivateKey.from_private_bytes(base64.b64decode(self.private_key_b64))
 
