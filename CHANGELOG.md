@@ -4,6 +4,11 @@ All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
 
+## [0.1.14] - 2026-05-17
+- Fix PIN auth messaging so the `https://plex.tv/link` fallback is shown only when Plex returns a valid 4-digit code.
+- Prevent invalid long codes from being presented as manual link codes.
+- Bump project/package version to `0.1.14`.
+
 ## [0.1.13] - 2026-05-17
 - Improve PIN auth fallback UX: print a manual `https://plex.tv/link` path with the PIN code when `app.plex.tv/auth` fails.
 - Include the same manual fallback URL/code in pending-approval messages.
