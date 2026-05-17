@@ -4,6 +4,13 @@ All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
 
+## [0.1.17] - 2026-05-17
+- Fix Plex PIN auth exchange by storing the generated JWK `kid` and including it in the signed device JWT header.
+- Replace expired or old-format PIN sessions with a new auth URL instead of surfacing raw 404 tracebacks.
+- Sanitize PIN auth HTTP failures so signed device JWTs are not exposed in CLI tracebacks.
+- Add regression tests for JWT `kid` signing and sanitized expired-session handling.
+- Bump project/package version to `0.1.17`.
+
 ## [0.1.16] - 2026-05-17
 - Fix Plex PIN authentication link routing by restoring hash-based `https://app.plex.tv/auth#!?...` URL format so browser sign-in no longer stalls on a static Plex logo screen.
 - Update auth URL regression test to validate the hash-route format.

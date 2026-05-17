@@ -57,22 +57,38 @@ def main() -> int:
     from plexmatch.api.graphql import PlexApi
 
     if args.auth_pin:
-        from plexmatch.api.auth import exchange_pin_for_token, load_pin_auth_session, start_pin_auth
+        from plexmatch.api.auth import (
+            PinAuthServiceError,
+            PinAuthSessionExpired,
+            exchange_pin_for_token,
+            load_pin_auth_session,
+            start_pin_auth,
+        )
 
-        session = load_pin_auth_session()
-        if session is None:
-            session = start_pin_auth(args.client_id)
-            print("Open this URL in a browser and sign in:")
+        def print_pin_instructions(session, prefix: str = "Open this URL in a browser and sign in:") -> None:
+            print(prefix)
             print(session.auth_url)
             if session.manual_link_code:
                 print("If needed, open https://plex.tv/link and enter this 4-digit code:")
                 print(session.manual_link_code)
+
+        session = load_pin_auth_session()
+        if session is None:
+            session = start_pin_auth(args.client_id)
+            print_pin_instructions(session)
             raise SystemExit("PIN session created. Run the same command again after approval.")
         if args.auth_wait > 0:
             deadline = time.time() + args.auth_wait
             token = None
             while time.time() < deadline and not token:
-                token = exchange_pin_for_token(session)
+                try:
+                    token = exchange_pin_for_token(session)
+                except PinAuthSessionExpired as exc:
+                    session = start_pin_auth(args.client_id)
+                    print_pin_instructions(session, prefix=f"{exc} Open this new URL in a browser and sign in:")
+                    raise SystemExit("PIN session recreated. Run the same command again after approval.")
+                except PinAuthServiceError as exc:
+                    raise SystemExit(str(exc))
                 if token:
                     break
                 time.sleep(2)
@@ -87,7 +103,14 @@ def main() -> int:
                     f"Auth URL: {session.auth_url}{manual_hint}"
                 )
         else:
-            token = exchange_pin_for_token(session)
+            try:
+                token = exchange_pin_for_token(session)
+            except PinAuthSessionExpired as exc:
+                session = start_pin_auth(args.client_id)
+                print_pin_instructions(session, prefix=f"{exc} Open this new URL in a browser and sign in:")
+                raise SystemExit("PIN session recreated. Run the same command again after approval.")
+            except PinAuthServiceError as exc:
+                raise SystemExit(str(exc))
             if not token:
                 manual_hint = (
                     f" | Manual fallback: {session.link_url} (code: {session.manual_link_code})"
