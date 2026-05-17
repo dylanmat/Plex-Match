@@ -4,3 +4,5 @@ pydantic
 rich
 pytest
 ruff
+PyJWT
+cryptography
