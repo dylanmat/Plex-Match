@@ -21,6 +21,7 @@
 - Keep web data access cache-only unless a future decision explicitly changes that.
 - Show cache setup guidance instead of triggering Plex API calls from web handlers.
 - Keep controls ergonomic for repeated movie-night use: ranked users, filters, and random pick actions should be immediately visible.
+- Avoid full user reranking on simple UI interactions such as selecting a user or making a random pick.
 
 ## Testing Standards
 - Use deterministic unit tests with stable fixtures.

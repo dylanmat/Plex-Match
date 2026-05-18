@@ -3,6 +3,8 @@
 All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
+- Improve local web UI responsiveness by memoizing cache-backed rankings and comparisons until the SQLite cache changes.
+- Avoid reranking all users when selecting a different user in the web UI.
 
 ## [0.3.0] - 2026-05-17
 - Add local FastAPI web UI available with `--web`.

@@ -1,7 +1,10 @@
 from pathlib import Path
+import os
+import time
 
 import pytest
 
+from plexmatch import service as service_module
 from plexmatch.cache import CacheError, CacheStore
 from plexmatch.models import Item, User
 from plexmatch.service import CachedComparisonService
@@ -91,3 +94,60 @@ def test_cached_service_raises_for_missing_watchlist(tmp_path: Path) -> None:
 
     with pytest.raises(CacheError):
         service.compare("friend-a")
+
+
+def test_ranked_users_are_memoized_by_media_type(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    service = CachedComparisonService(_store_with_comparisons(tmp_path / "cache.sqlite3"))
+    calls = {"count": 0}
+    real_candidates = service_module.candidates
+
+    def counting_candidates(*args, **kwargs):
+        calls["count"] += 1
+        return real_candidates(*args, **kwargs)
+
+    monkeypatch.setattr(service_module, "candidates", counting_candidates)
+
+    first = service.ranked_users("movie")
+    second = service.ranked_users("movie")
+
+    assert first == second
+    assert calls["count"] == 2
+
+
+def test_comparison_and_random_reuse_memoized_results(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    service = CachedComparisonService(_store_with_comparisons(tmp_path / "cache.sqlite3"))
+    calls = {"count": 0}
+    real_candidates = service_module.candidates
+
+    def counting_candidates(*args, **kwargs):
+        calls["count"] += 1
+        return real_candidates(*args, **kwargs)
+
+    monkeypatch.setattr(service_module, "candidates", counting_candidates)
+
+    service.compare("friend-a", "movie")
+    service.compare("friend-a", "movie")
+    service.random_match("friend-a", "low", "movie")
+
+    assert calls["count"] == 1
+
+
+def test_service_invalidates_memoized_results_when_cache_mtime_changes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    cache_path = tmp_path / "cache.sqlite3"
+    store = _store_with_comparisons(cache_path)
+    service = CachedComparisonService(store)
+    calls = {"count": 0}
+    real_candidates = service_module.candidates
+
+    def counting_candidates(*args, **kwargs):
+        calls["count"] += 1
+        return real_candidates(*args, **kwargs)
+
+    monkeypatch.setattr(service_module, "candidates", counting_candidates)
+
+    service.compare("friend-a", "movie")
+    new_mtime = time.time() + 10
+    os.utime(cache_path, (new_mtime, new_mtime))
+    service.compare("friend-a", "movie")
+
+    assert calls["count"] == 2

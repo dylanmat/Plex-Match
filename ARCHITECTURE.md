@@ -86,10 +86,12 @@ Suggested module: `plexmatch/output.py`
 1. User starts `python -m plexmatch --web`.
 2. FastAPI app binds to `127.0.0.1:8000` unless overridden.
 3. Web service reads users, watchlists, and local library items from `.plexmatch/cache.sqlite3` or `PLEXMATCH_CACHE_PATH`.
-4. Cached `self` is compared against cached users.
-5. Users are ranked by total scored matches against `self`.
-6. Selected comparison results are filtered, scored, and randomized from cache only.
-7. Missing cache state returns setup guidance instead of calling Plex APIs.
+4. Web service builds an in-process snapshot and invalidates it when the SQLite cache file modification time changes.
+5. Cached `self` is compared against cached users.
+6. Users are ranked by total scored matches against `self`.
+7. Selected comparison results are memoized by user and media type, then filtered and randomized from cache only.
+8. The frontend fetches ranked users on initial load or media-type changes; selecting a user only fetches that comparison.
+9. Missing cache state returns setup guidance instead of calling Plex APIs.
 
 ## Plex GraphQL Integration
 - Endpoint target: Plex cloud/community GraphQL API.

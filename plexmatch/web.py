@@ -27,19 +27,32 @@ def create_app(cache: CacheStore | None = None) -> FastAPI:
 
     @app.get("/api/status")
     def status() -> dict:
-        return asdict(service.status())
+        payload = asdict(service.status())
+        if payload["ready"]:
+            payload.update(service.metadata())
+        return payload
 
     @app.get("/api/users/top")
     def top_users(media_type: str = "all") -> dict:
         try:
-            return {"users": [ranked_user_to_dict(user) for user in service.ranked_users(media_type)]}
+            users = [ranked_user_to_dict(user) for user in service.ranked_users(media_type)]
+            return {
+                "users": users,
+                "result_count": len(users),
+                **service.metadata(),
+            }
         except CacheError as exc:
             return _cache_error_payload(exc)
 
     @app.get("/api/compare/{user_id}")
     def compare(user_id: str, media_type: str = "all", top: int | None = None) -> dict:
         try:
-            return {"matches": [match_to_dict(match) for match in service.compare(user_id, media_type, top)]}
+            matches = [match_to_dict(match) for match in service.compare(user_id, media_type, top)]
+            return {
+                "matches": matches,
+                "result_count": len(matches),
+                **service.metadata(),
+            }
         except CacheError as exc:
             return _cache_error_payload(exc)
 
@@ -48,7 +61,10 @@ def create_app(cache: CacheStore | None = None) -> FastAPI:
         if request.mode not in {"high", "low"}:
             raise HTTPException(status_code=400, detail="mode must be high or low")
         try:
-            return {"match": match_to_dict(service.random_match(request.user_id, request.mode, request.media_type, request.top))}
+            return {
+                "match": match_to_dict(service.random_match(request.user_id, request.mode, request.media_type, request.top)),
+                **service.metadata(),
+            }
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         except CacheError as exc:
@@ -66,7 +82,7 @@ def _cache_error_payload(exc: CacheError) -> dict:
             'python -m plexmatch --user-a self --user-b "Friend Name"',
         ],
     }
-    return {"status": status, "users": [], "matches": []}
+    return {"status": status, "users": [], "matches": [], "result_count": 0}
 
 
 APP_HTML = """
@@ -228,6 +244,8 @@ APP_HTML = """
   </main>
   <script>
     let selectedUserId = null;
+    let rankedUsers = [];
+    let isLoading = false;
     const usersEl = document.getElementById("users");
     const resultsEl = document.getElementById("results");
     const statusEl = document.getElementById("status");
@@ -250,13 +268,16 @@ APP_HTML = """
       statusEl.innerHTML = `<div class="status warn"><div class="title">${status.message}</div>${commands}</div>`;
     }
 
-    async function loadUsers() {
-      const mediaType = mediaTypeEl.value;
-      const response = await fetch(`/api/users/top?media_type=${encodeURIComponent(mediaType)}`);
-      const data = await response.json();
-      showStatus(data.status);
+    function setLoading(value) {
+      isLoading = value;
+      document.getElementById("randomLow").disabled = value || !selectedUserId;
+      document.getElementById("randomHigh").disabled = value || !selectedUserId;
+      if (value) selectedEl.innerHTML = "Loading cached results...";
+    }
+
+    function renderUsers() {
       usersEl.innerHTML = "";
-      (data.users || []).forEach((entry, index) => {
+      rankedUsers.forEach((entry, index) => {
         const button = document.createElement("button");
         button.className = `user ${entry.user.id === selectedUserId ? "active" : ""}`;
         button.innerHTML = `<div class="name">${entry.user.title}</div><div class="meta">${entry.total_score} total score | ${entry.match_count} results</div>`;
@@ -264,19 +285,33 @@ APP_HTML = """
         usersEl.appendChild(button);
         if (index === 0 && !selectedUserId) selectedUserId = entry.user.id;
       });
+    }
+
+    async function loadUsers() {
+      setLoading(true);
+      const mediaType = mediaTypeEl.value;
+      const response = await fetch(`/api/users/top?media_type=${encodeURIComponent(mediaType)}`);
+      const data = await response.json();
+      showStatus(data.status);
+      rankedUsers = data.users || [];
+      renderUsers();
       if (selectedUserId) await loadComparison();
-      if (!selectedUserId && !(data.users || []).length) {
+      if (!selectedUserId && !rankedUsers.length) {
         selectedEl.innerHTML = "No cached comparisons available.";
         resultsEl.innerHTML = "";
       }
+      setLoading(false);
     }
 
     async function selectUser(userId) {
       selectedUserId = userId;
-      await loadUsers();
+      renderUsers();
+      await loadComparison();
     }
 
     async function loadComparison() {
+      if (!selectedUserId) return;
+      setLoading(true);
       const mediaType = mediaTypeEl.value;
       const top = topLimitEl.value;
       const response = await fetch(`/api/compare/${encodeURIComponent(selectedUserId)}?media_type=${encodeURIComponent(mediaType)}&top=${encodeURIComponent(top)}`);
@@ -296,10 +331,12 @@ APP_HTML = """
         `;
         resultsEl.appendChild(row);
       });
+      setLoading(false);
     }
 
     async function randomPick(mode) {
-      if (!selectedUserId) return;
+      if (!selectedUserId || isLoading) return;
+      setLoading(true);
       const response = await fetch("/api/random", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
@@ -309,6 +346,7 @@ APP_HTML = """
       if (data.match) {
         selectedEl.innerHTML = `<div class="title">${data.match.title}</div><div class="meta">Random ${mode} | score ${data.match.score} | ${availabilityLabel(data.match.available_locally)}</div>`;
       }
+      setLoading(false);
     }
 
     mediaTypeEl.onchange = () => { selectedUserId = null; loadUsers(); };

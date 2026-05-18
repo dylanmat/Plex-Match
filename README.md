@@ -87,7 +87,7 @@ python -m plexmatch --user-a self --user-b "Friend Name"
 python -m plexmatch --web
 ```
 
-Open `http://127.0.0.1:8000`. The default view compares `self` against cached users, ranks users by total scored matches, and supports media filters plus low-confidence and high-confidence random picks. Use `--web-host` and `--web-port` when running in Docker or another local environment.
+Open `http://127.0.0.1:8000`. The default view compares `self` against cached users, ranks users by total scored matches, and supports media filters plus low-confidence and high-confidence random picks. Web results are also memoized in memory and refresh automatically when the SQLite cache file changes. Use `--web-host` and `--web-port` when running in Docker or another local environment.
 
 
 ## Authentication (Plex JWT Recommended)
