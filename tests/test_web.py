@@ -33,6 +33,9 @@ def test_dashboard_loads() -> None:
 
     assert response.status_code == 200
     assert "PlexMatch" in response.text
+    assert "spinner" in response.text
+    assert ".badge.both" in response.text
+    assert "sourceLabel" in response.text
 
 
 def test_missing_cache_returns_setup_guidance(tmp_path: Path) -> None:

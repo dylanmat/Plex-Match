@@ -170,7 +170,7 @@ APP_HTML = """
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 9px 10px;
+      padding: 10px;
     }
     .user.active {
       border-color: var(--accent);
@@ -186,6 +186,23 @@ APP_HTML = """
       margin-bottom: 16px;
     }
     .status.warn { border-color: #fed7aa; color: var(--warn); }
+    .loading {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--muted);
+    }
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--line);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
     .results { display: grid; gap: 8px; }
     .result {
       display: grid;
@@ -197,6 +214,39 @@ APP_HTML = """
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--panel);
+    }
+    .result.both {
+      border-left: 5px solid var(--accent);
+    }
+    .result.user_a {
+      border-left: 5px solid #2563eb;
+    }
+    .result.user_b {
+      border-left: 5px solid #9333ea;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 56px;
+      height: 24px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+    .badge.both {
+      color: #115e59;
+      background: #ccfbf1;
+    }
+    .badge.user_a {
+      color: #1e40af;
+      background: #dbeafe;
+    }
+    .badge.user_b {
+      color: #6b21a8;
+      background: #f3e8ff;
     }
     code {
       display: block;
@@ -272,7 +322,14 @@ APP_HTML = """
       isLoading = value;
       document.getElementById("randomLow").disabled = value || !selectedUserId;
       document.getElementById("randomHigh").disabled = value || !selectedUserId;
-      if (value) selectedEl.innerHTML = "Loading cached results...";
+      if (value) selectedEl.innerHTML = `<div class="loading"><span class="spinner" aria-hidden="true"></span><span>Refreshing from cache...</span></div>`;
+    }
+
+    function sourceLabel(value) {
+      if (value === "both") return "both";
+      if (value === "user_a") return "self";
+      if (value === "user_b") return "other";
+      return value || "unknown";
     }
 
     function renderUsers() {
@@ -321,11 +378,11 @@ APP_HTML = """
       resultsEl.innerHTML = "";
       (data.matches || []).forEach(match => {
         const row = document.createElement("div");
-        row.className = "result";
+        row.className = `result ${match.source || ""}`;
         row.innerHTML = `
           <div><div class="title">${match.title}</div><div class="meta">${match.year || ""} ${match.media_type || ""}</div></div>
           <div>score ${match.score}</div>
-          <div>${match.source}</div>
+          <div><span class="badge ${match.source || ""}">${sourceLabel(match.source)}</span></div>
           <div>support ${match.support_count}</div>
           <div>${availabilityLabel(match.available_locally)}</div>
         `;
