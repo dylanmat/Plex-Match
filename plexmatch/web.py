@@ -207,7 +207,7 @@ APP_HTML = """
     .results { display: grid; gap: 8px; }
     .result {
       display: grid;
-      grid-template-columns: minmax(180px, 1fr) repeat(5, minmax(70px, auto));
+      grid-template-columns: minmax(180px, 1fr) repeat(3, 96px);
       gap: 12px;
       align-items: center;
       min-height: 52px;
@@ -215,6 +215,11 @@ APP_HTML = """
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--panel);
+    }
+    .metric {
+      display: flex;
+      justify-content: center;
+      min-width: 0;
     }
     .result.both {
       border-left: 5px solid var(--accent);
@@ -248,6 +253,60 @@ APP_HTML = """
     .badge.user_b {
       color: #6b21a8;
       background: #f3e8ff;
+    }
+    .score-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-width: 62px;
+      height: 26px;
+      padding: 0 9px;
+      border-radius: 999px;
+      color: #334155;
+      background: #eef2f7;
+      border: 1px solid #d7dee8;
+      font-size: 12px;
+      font-weight: 750;
+    }
+    .info {
+      position: relative;
+      display: inline-grid;
+      place-items: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      color: #64748b;
+      background: #dfe6ef;
+      border: 1px solid #cbd5e1;
+      font-size: 10px;
+      font-weight: 800;
+      cursor: help;
+    }
+    .info::after {
+      content: attr(data-tip);
+      position: absolute;
+      right: 0;
+      bottom: calc(100% + 8px);
+      width: max-content;
+      max-width: 220px;
+      padding: 7px 9px;
+      border-radius: 6px;
+      color: white;
+      background: #26323f;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.3;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(4px);
+      transition: opacity 0.12s ease, transform 0.12s ease;
+      z-index: 3;
+    }
+    .info:hover::after,
+    .info:focus::after {
+      opacity: 1;
+      transform: translateY(0);
     }
     .availability {
       display: inline-flex;
@@ -395,6 +454,12 @@ APP_HTML = """
       return value || "unknown";
     }
 
+    function supportInfo(count) {
+      const value = Number(count) || 0;
+      const noun = value === 1 ? "other cached user" : "other cached users";
+      return `<span class="info" tabindex="0" data-tip="Support: ${value} ${noun} also have this item.">i</span>`;
+    }
+
     function renderUsers() {
       usersEl.innerHTML = "";
       mobileUserSelectEl.innerHTML = "";
@@ -450,10 +515,9 @@ APP_HTML = """
         row.className = `result ${match.source || ""}`;
         row.innerHTML = `
           <div><div class="title">${match.title}</div><div class="meta">${match.year || ""} ${match.media_type || ""}</div></div>
-          <div>score ${match.score}</div>
-          <div><span class="badge ${match.source || ""}">${sourceLabel(match.source)}</span></div>
-          <div>support ${match.support_count}</div>
-          <div>${availabilityLabel(match.available_locally)}</div>
+          <div class="metric"><span class="score-pill">${match.score}${supportInfo(match.support_count)}</span></div>
+          <div class="metric"><span class="badge ${match.source || ""}">${sourceLabel(match.source)}</span></div>
+          <div class="metric">${availabilityLabel(match.available_locally)}</div>
         `;
         resultsEl.appendChild(row);
       });

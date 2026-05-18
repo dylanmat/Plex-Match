@@ -38,6 +38,8 @@ def test_dashboard_loads() -> None:
     assert "sourceLabel" in response.text
     assert "mobileUserSelect" in response.text
     assert "availability yes" in response.text
+    assert "score-pill" in response.text
+    assert "supportInfo" in response.text
 
 
 def test_missing_cache_returns_setup_guidance(tmp_path: Path) -> None:
