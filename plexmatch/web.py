@@ -162,6 +162,7 @@ APP_HTML = """
       border-color: var(--line);
     }
     .user-list { display: grid; gap: 8px; }
+    .mobile-user-select { display: none; }
     .user {
       width: 100%;
       min-height: 58px;
@@ -248,6 +249,48 @@ APP_HTML = """
       color: #6b21a8;
       background: #f3e8ff;
     }
+    .availability {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 92px;
+      height: 26px;
+      padding: 0 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .availability .mark {
+      display: inline-grid;
+      place-items: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      color: white;
+      font-size: 11px;
+      line-height: 1;
+    }
+    .availability.yes {
+      color: #166534;
+      background: #dcfce7;
+    }
+    .availability.yes .mark {
+      background: #16a34a;
+    }
+    .availability.no {
+      color: #991b1b;
+      background: #fee2e2;
+    }
+    .availability.no .mark {
+      background: #dc2626;
+    }
+    .availability.unknown {
+      color: #525252;
+      background: #e5e5e5;
+    }
+    .availability.unknown .mark {
+      background: #737373;
+    }
     code {
       display: block;
       color: var(--text);
@@ -260,7 +303,19 @@ APP_HTML = """
     }
     @media (max-width: 780px) {
       main { grid-template-columns: 1fr; }
-      aside { border-right: 0; border-bottom: 1px solid var(--line); }
+      aside {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+        padding: 12px 14px;
+      }
+      aside .toolbar { margin-bottom: 0; }
+      .user-list { display: none; }
+      .mobile-user-select {
+        display: block;
+        width: 100%;
+        margin-top: 10px;
+      }
+      section { padding: 14px; }
       .result { grid-template-columns: 1fr 1fr; }
     }
   </style>
@@ -279,6 +334,7 @@ APP_HTML = """
           <option value="show">Shows</option>
         </select>
       </div>
+      <select id="mobileUserSelect" class="mobile-user-select" aria-label="Select user"></select>
       <div id="users" class="user-list"></div>
     </aside>
     <section>
@@ -301,12 +357,13 @@ APP_HTML = """
     const statusEl = document.getElementById("status");
     const selectedEl = document.getElementById("selected");
     const mediaTypeEl = document.getElementById("mediaType");
+    const mobileUserSelectEl = document.getElementById("mobileUserSelect");
     const topLimitEl = document.getElementById("topLimit");
 
     function availabilityLabel(value) {
-      if (value === true) return "local yes";
-      if (value === false) return "local no";
-      return "local unknown";
+      if (value === true) return `<span class="availability yes"><span class="mark">✓</span><span>local</span></span>`;
+      if (value === false) return `<span class="availability no"><span class="mark">×</span><span>missing</span></span>`;
+      return `<span class="availability unknown"><span class="mark">?</span><span>unknown</span></span>`;
     }
 
     function showStatus(status) {
@@ -334,14 +391,20 @@ APP_HTML = """
 
     function renderUsers() {
       usersEl.innerHTML = "";
+      mobileUserSelectEl.innerHTML = "";
       rankedUsers.forEach((entry, index) => {
         const button = document.createElement("button");
         button.className = `user ${entry.user.id === selectedUserId ? "active" : ""}`;
         button.innerHTML = `<div class="name">${entry.user.title}</div><div class="meta">${entry.total_score} total score | ${entry.match_count} results</div>`;
         button.onclick = () => selectUser(entry.user.id);
         usersEl.appendChild(button);
+        const option = document.createElement("option");
+        option.value = entry.user.id;
+        option.textContent = `${entry.user.title} (${entry.total_score})`;
+        mobileUserSelectEl.appendChild(option);
         if (index === 0 && !selectedUserId) selectedUserId = entry.user.id;
       });
+      mobileUserSelectEl.value = selectedUserId || "";
     }
 
     async function loadUsers() {
@@ -401,12 +464,13 @@ APP_HTML = """
       });
       const data = await response.json();
       if (data.match) {
-        selectedEl.innerHTML = `<div class="title">${data.match.title}</div><div class="meta">Random ${mode} | score ${data.match.score} | ${availabilityLabel(data.match.available_locally)}</div>`;
+        selectedEl.innerHTML = `<div class="title">${data.match.title}</div><div class="meta">Random ${mode} | score ${data.match.score}</div><div style="margin-top: 8px;">${availabilityLabel(data.match.available_locally)}</div>`;
       }
       setLoading(false);
     }
 
     mediaTypeEl.onchange = () => { selectedUserId = null; loadUsers(); };
+    mobileUserSelectEl.onchange = () => selectUser(mobileUserSelectEl.value);
     topLimitEl.onchange = loadComparison;
     document.getElementById("randomLow").onclick = () => randomPick("low");
     document.getElementById("randomHigh").onclick = () => randomPick("high");

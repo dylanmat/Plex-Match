@@ -36,6 +36,8 @@ def test_dashboard_loads() -> None:
     assert "spinner" in response.text
     assert ".badge.both" in response.text
     assert "sourceLabel" in response.text
+    assert "mobileUserSelect" in response.text
+    assert "availability yes" in response.text
 
 
 def test_missing_cache_returns_setup_guidance(tmp_path: Path) -> None:
