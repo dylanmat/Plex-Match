@@ -3,7 +3,7 @@
 ## Purpose
 Track PlexMatch development priorities, sequencing, and delivery status.
 
-## Now
+## Completed
 
 ### V1 CLI MVP
 - Goal: compare two Plex users' visible watchlists and show overlaps.
@@ -29,8 +29,6 @@ Track PlexMatch development priorities, sequencing, and delivery status.
   - Missing or changed fields fail gracefully.
   - Debug mode helps inspect response shapes without exposing tokens.
 
-## Next
-
 ### V1.1 Filtering and Better Selection
 - Goal: make results easier to use for movie-night decisions.
 - Status: Complete
@@ -49,8 +47,6 @@ Track PlexMatch development priorities, sequencing, and delivery status.
   - Match local library items by GUID or metadata IDs.
   - Add availability to score and output.
 
-## Later
-
 ### V2 Local Cache
 - Goal: reduce repeated API calls and improve performance.
 - Status: Complete
@@ -62,13 +58,18 @@ Track PlexMatch development priorities, sequencing, and delivery status.
 
 ### V3 Local Web UI
 - Goal: create a simple local movie-night interface.
-- Status: Planned
+- Status: Complete
 - Success Criteria:
   - Flask or FastAPI app.
   - Select two users.
   - View ranked matches.
   - Reroll random pick.
   - Apply filters interactively.
+  - Default view compares `self` against cached users.
+  - Top users are ranked by total scored matches with `self`.
+  - Results and random picks read from cache only.
+
+## Later
 
 ### V4 Metadata and Import Integrations
 - Goal: improve matching and scoring beyond Plex metadata.

@@ -14,6 +14,11 @@ Responsible for argument parsing, environment loading, command routing, user-fac
 
 Suggested module: `plexmatch/cli.py`
 
+### Web UI Layer
+Provides a local FastAPI interface backed only by cached data.
+
+Suggested module: `plexmatch/web.py`
+
 ### Configuration Layer
 Loads Plex token and optional settings from CLI flags, environment variables, and `.env` files.
 
@@ -23,6 +28,11 @@ Suggested module: `plexmatch/config.py`
 Stores normalized users, watchlists, and local library items in project-local SQLite without storing credentials.
 
 Suggested module: `plexmatch/cache.py`
+
+### Comparison Service Layer
+Builds cache-backed user rankings, comparisons, and random picks for both CLI-adjacent and web workflows.
+
+Suggested module: `plexmatch/service.py`
 
 ### Plex API Layer
 Encapsulates Plex community/GraphQL calls. This should be the only layer aware of endpoint URLs, GraphQL query documents, pagination mechanics, headers, and raw response shapes.
@@ -59,7 +69,7 @@ Formats table and JSON output. Table output should use `rich` or `tabulate`.
 Suggested module: `plexmatch/output.py`
 
 ## Inference and Data Flow
-1. User runs CLI command.
+1. User runs CLI or local web command.
 2. CLI loads config and validates token presence.
 3. API layer validates Plex authentication.
 4. Cache layer returns fresh normalized data when available.
@@ -71,6 +81,15 @@ Suggested module: `plexmatch/output.py`
 10. Scoring layer assigns scores.
 11. Output layer prints table or JSON.
 12. If `--random` is used, selector chooses one item from scored matches.
+
+## Web UI Data Flow
+1. User starts `python -m plexmatch --web`.
+2. FastAPI app binds to `127.0.0.1:8000` unless overridden.
+3. Web service reads users, watchlists, and local library items from `.plexmatch/cache.sqlite3` or `PLEXMATCH_CACHE_PATH`.
+4. Cached `self` is compared against cached users.
+5. Users are ranked by total scored matches against `self`.
+6. Selected comparison results are filtered, scored, and randomized from cache only.
+7. Missing cache state returns setup guidance instead of calling Plex APIs.
 
 ## Plex GraphQL Integration
 - Endpoint target: Plex cloud/community GraphQL API.
@@ -99,4 +118,5 @@ Minimum V1 acceptance checks:
 - Plex token loaded from local environment only.
 - Optional local Plex server availability checks through `PLEX_SERVER_URL` and `PLEX_SERVER_TOKEN`.
 - Project-local SQLite cache at `.plexmatch/cache.sqlite3` by default, overrideable with `PLEXMATCH_CACHE_PATH`.
+- Local FastAPI web UI reads cache only and does not access Plex tokens.
 - Optional future TMDb, Trakt, Letterboxd, or IMDb import/enrichment.

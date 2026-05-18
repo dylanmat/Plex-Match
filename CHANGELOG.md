@@ -3,10 +3,13 @@
 All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
-- Add automatic local Plex server availability enrichment when `PLEX_SERVER_URL` and `PLEX_SERVER_TOKEN` are configured.
-- Add local availability to scoring, table/plain output, and JSON output.
-- Add sanitized warning-and-continue behavior when the local Plex server check fails.
-- Replace the `.env.example` Plex token with a placeholder value.
+
+## [0.3.0] - 2026-05-17
+- Add local FastAPI web UI available with `--web`.
+- Add cache-only comparison service for ranked `self` comparisons.
+- Rank top matching users by total scored matches.
+- Add web endpoints for status, ranked users, comparisons, and high/low confidence random picks.
+- Document web cache prerequisites and local-only security model.
 
 ## [0.2.0] - 2026-05-17
 - Add project-local SQLite cache at `.plexmatch/cache.sqlite3`.

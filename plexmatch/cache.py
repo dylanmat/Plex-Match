@@ -50,6 +50,36 @@ class CacheStore:
     def set_local_items(self, server_url: str, items: list[Item], ttl_seconds: int) -> None:
         self._set_json(_normalize_server_url(server_url), "local_library", "all", [asdict(item) for item in items], ttl_seconds)
 
+    def user_namespaces(self) -> list[str]:
+        return self._list_namespaces("users")
+
+    def local_library_namespaces(self) -> list[str]:
+        return self._list_namespaces("local_library")
+
+    def get_cached_local_items(self, namespace: str) -> list[Item] | None:
+        return self._get_json(namespace, "local_library", "all", _items_from_payload)
+
+    def _list_namespaces(self, kind: str) -> list[str]:
+        now = int(time.time())
+        conn: sqlite3.Connection | None = None
+        try:
+            conn = self._connect()
+            rows = conn.execute(
+                """
+                SELECT namespace
+                FROM cache_entries
+                WHERE kind = ? AND expires_at > ?
+                ORDER BY created_at DESC
+                """,
+                (kind, now),
+            ).fetchall()
+            return [str(row["namespace"]) for row in rows]
+        except (OSError, sqlite3.Error) as exc:
+            raise CacheError("Could not read cache.") from exc
+        finally:
+            if conn is not None:
+                conn.close()
+
     def _get_json(self, namespace: str, kind: str, key: str, factory: Callable[[object], T]) -> T | None:
         now = int(time.time())
         conn: sqlite3.Connection | None = None

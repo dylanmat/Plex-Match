@@ -16,12 +16,19 @@
 - Do not echo secrets.
 - Provide useful error messages for invalid tokens, inaccessible users, empty watchlists, and no overlaps.
 
+## Web UI Standards
+- Bind local web UI to `127.0.0.1` by default.
+- Keep web data access cache-only unless a future decision explicitly changes that.
+- Show cache setup guidance instead of triggering Plex API calls from web handlers.
+- Keep controls ergonomic for repeated movie-night use: ranked users, filters, and random pick actions should be immediately visible.
+
 ## Testing Standards
 - Use deterministic unit tests with stable fixtures.
 - Mock Plex API calls in unit tests.
 - Keep live API calls out of default test runs.
 - Add regression tests for normalization and duplicate handling.
 - Separate integration tests from unit tests.
+- Test FastAPI endpoints with cached fixtures and no live Plex calls.
 
 ## Documentation Standards
 - Keep `README.md` high-level.

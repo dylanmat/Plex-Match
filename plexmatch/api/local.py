@@ -28,9 +28,9 @@ class LocalPlexApi:
         return {
             "Accept": "application/xml",
             "X-Plex-Product": "PlexMatch",
-            "X-Plex-Version": "0.2.0",
+            "X-Plex-Version": "0.3.0",
             "X-Plex-Client-Identifier": "plexmatch-cli",
-            "User-Agent": "plexmatch/0.2.0",
+            "User-Agent": "plexmatch/0.3.0",
             "X-Plex-Token": self._token,
         }
 

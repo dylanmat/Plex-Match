@@ -1,16 +1,16 @@
 # PlexMatch
 
 ## Overview
-PlexMatch is a Python command-line tool for comparing two Plex users' watchlists and selecting something both people want to watch.
+PlexMatch is a Python tool for comparing Plex users' watchlists and selecting something both people want to watch.
 
-V1 uses a Plex community/GraphQL approach, normalizes entries by stable IDs, finds overlap, scores matches, and can randomly pick one title.
+It uses a Plex community/GraphQL approach, normalizes entries by stable IDs, finds overlap, scores matches, and can randomly pick one title. The CLI populates a local cache, and the local web UI reads from that cache for fast movie-night browsing.
 
 ## Version
-Current version: `0.2.0`
+Current version: `0.3.0`
 
-## Features (V1)
+## Features
 - PIN + JWK auth bootstrap flow (`--auth-pin`) to obtain a Plex JWT without legacy token
-- Python 3.11+ CLI only (`python -m plexmatch`)
+- Python 3.11+ CLI (`python -m plexmatch`)
 - Token input from `--token` or `PLEX_TOKEN` (`.env` supported)
 - List accessible users/friends (`--list-users`)
 - Fetch watchlists for two selected users
@@ -21,6 +21,7 @@ Current version: `0.2.0`
 - Filters and selection flags: `--type`, `--top`, `--random high`, `--random low`
 - Optional local Plex server availability check using `PLEX_SERVER_URL` and `PLEX_SERVER_TOKEN`
 - Project-local SQLite cache with `--no-cache`, `--clear-cache`, and configurable TTL
+- Local FastAPI web UI (`--web`) that reads only from cache
 
 ## CLI Examples
 ```bash
@@ -35,6 +36,7 @@ python -m plexmatch --user-a "Dylan" --user-b "Joy" --random low
 python -m plexmatch --user-a "Dylan" --user-b "Joy" --format json
 python -m plexmatch --clear-cache
 python -m plexmatch --user-a "Dylan" --user-b "Joy" --no-cache
+python -m plexmatch --web
 ```
 
 ## Quickstart
@@ -76,6 +78,17 @@ python -m plexmatch --clear-cache
 
 For Docker, mount `.plexmatch/` or set `PLEXMATCH_CACHE_PATH` to a mounted path such as `/app/.plexmatch/cache.sqlite3`. Tokens are not stored in the cache.
 
+## Local Web UI
+The web UI is cache-only by design. Populate cache with CLI commands first, then start the local server:
+
+```bash
+python -m plexmatch --list-users
+python -m plexmatch --user-a self --user-b "Friend Name"
+python -m plexmatch --web
+```
+
+Open `http://127.0.0.1:8000`. The default view compares `self` against cached users, ranks users by total scored matches, and supports media filters plus low-confidence and high-confidence random picks. Use `--web-host` and `--web-port` when running in Docker or another local environment.
+
 
 ## Authentication (Plex JWT Recommended)
 - Plex now recommends JWT auth with short-lived (7 day) tokens and per-device key registration.
@@ -97,6 +110,7 @@ For Docker, mount `.plexmatch/` or set `PLEXMATCH_CACHE_PATH` to a mounted path 
 
 
 ## Changelog
+- 0.3.0: Add cache-only FastAPI web UI for ranked self comparisons and random picks.
 - 0.2.0: Add project-local SQLite caching for users, watchlists, and local library items.
 - 0.1.32: Add optional local Plex server availability enrichment and scoring/output support.
 - 0.1.31: Normalize one-sided candidate base scores so `user_a` and `user_b` both start at 10 before support bonuses.

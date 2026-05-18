@@ -27,13 +27,15 @@ The project maintainer owns security decisions until formal ownership is assigne
 - Human review is required before adding new external integrations that handle tokens or user watchlist data.
 
 ## Environment and Deployment Controls
-- V1 is local-only and should not expose a listening service.
-- Future web or hosted modes must receive a separate security review.
+- CLI operation is local-only.
+- The V3 web UI binds to `127.0.0.1` by default and should only be exposed deliberately in Docker or trusted local networks.
+- Future hosted modes must receive a separate security review.
 - Keep dev/test credentials separate from any real user tokens where practical.
 - Avoid persistent storage of user watchlists in V1.
 - The local SQLite cache stores normalized users, watchlists, and local library metadata only; it must not store Plex tokens, local server tokens, or token hashes.
 - `.plexmatch/` is ignored by git, and `--clear-cache` deletes cached metadata.
 - Cache retention defaults to 6 hours and can be changed with `PLEX_CACHE_TTL_HOURS` or `--cache-ttl-hours`.
+- The web UI reads cache only and must not read `.env`, Plex tokens, or local server tokens.
 
 ## Dependency and Runtime Controls
 - Pin or constrain dependencies once implementation stabilizes.

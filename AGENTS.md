@@ -33,7 +33,7 @@
 ### Implementer Agent
 - Purpose: implement approved plans and keep behavior/docs aligned.
 - Inputs: approved plan, codebase state, standards and security policies.
-- Outputs: code/doc changes, test results summary, risk notes.
+- Outputs: code/doc changes, UI changes when applicable, test results summary, risk notes.
 - Allowed actions: edit files, run build/test/lint commands.
 - Disallowed actions: bypassing security policy, logging secrets, or undocumented behavior changes.
 - Handoff to: Reviewer Agent.
@@ -54,6 +54,14 @@
 - Disallowed actions: changing product behavior in docs-only tasks.
 - Handoff to: Release Agent.
 
+### Web UI Agent
+- Purpose: plan and review local UI workflows without expanding token exposure.
+- Inputs: cache-backed service behavior, UX requirements, `SECURITY.md`, and `STANDARDS.md`.
+- Outputs: local UI implementation notes, endpoint expectations, and cache-only validation risks.
+- Allowed actions: inspect frontend/backend UI code, propose or implement local UI changes during implementation tasks.
+- Disallowed actions: adding web handlers that read Plex tokens or call Plex APIs without an accepted decision.
+- Handoff to: Reviewer Agent or Docs Agent.
+
 ### Release Agent
 - Purpose: finalize release notes and version-facing updates.
 - Inputs: merged changes, decisions, and test outcomes.
@@ -70,4 +78,4 @@
 ## Pull Request Policy for Agent Workflows
 - Include summary, rationale, and verification evidence.
 - Minimum verification: `ruff check .` and `pytest -q`.
-- Update `AGENTS.md` when agent roles, allowed actions, disallowed actions, handoffs, or update triggers change.
+- Update `AGENTS.md` when agent roles, allowed actions, disallowed actions, handoffs, UI ownership, or update triggers change.

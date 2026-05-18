@@ -60,3 +60,12 @@ Use this format for each new decision:
 - Consequences: The cache is self-contained and portable. Cached metadata must be ignored by git and cleared with `--clear-cache` when needed.
 - Alternatives Considered: OS-specific user cache directories, no cache path override, token-derived cache namespaces.
 - Supersedes/Superseded By: None
+
+### ADR-006 - Build a Cache-Only Local Web UI
+- Date: 2026-05-17
+- Status: Accepted
+- Context: V3 needs a fast local movie-night interface while keeping Plex API calls and token handling out of web request paths.
+- Decision: The local web UI uses FastAPI, binds to `127.0.0.1` by default, and reads only from the project-local SQLite cache.
+- Consequences: Web views are fast and token-free, but users must populate or refresh cache through CLI commands before using the web UI.
+- Alternatives Considered: Flask templates, stdlib HTTP server, web-triggered Plex API refreshes.
+- Supersedes/Superseded By: None

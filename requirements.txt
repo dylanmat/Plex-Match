@@ -6,3 +6,5 @@ pytest
 ruff
 PyJWT
 cryptography
+fastapi
+uvicorn

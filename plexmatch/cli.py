@@ -67,6 +67,9 @@ def main() -> int:
     p.add_argument("--no-cache", action="store_true", help="Bypass cache reads and writes for this run.")
     p.add_argument("--clear-cache", action="store_true", help="Delete local cache and exit.")
     p.add_argument("--cache-ttl-hours", type=float, help="Cache retention in hours. Defaults to PLEX_CACHE_TTL_HOURS or 6.")
+    p.add_argument("--web", action="store_true", help="Start the local cache-backed web UI.")
+    p.add_argument("--web-host", default="127.0.0.1", help="Host for the local web UI.")
+    p.add_argument("--web-port", type=int, default=8000, help="Port for the local web UI.")
     args = p.parse_args()
 
     assert_runtime_dependencies()
@@ -80,6 +83,14 @@ def main() -> int:
         except CacheError as exc:
             raise SystemExit(str(exc))
         print("Cache cleared.")
+        return 0
+
+    if args.web:
+        try:
+            import uvicorn
+        except ModuleNotFoundError as exc:
+            raise SystemExit("Missing web dependencies. Run `pip install -r requirements.txt` and retry.") from exc
+        uvicorn.run("plexmatch.web:create_app", factory=True, host=args.web_host, port=args.web_port)
         return 0
 
     if args.auth_pin:
