@@ -56,8 +56,17 @@ def test_cached_service_ranks_users_by_total_overlap_score(tmp_path: Path) -> No
 
     ranked = service.ranked_users("movie")
 
-    assert [entry.user.id for entry in ranked] == ["friend-a", "friend-b"]
-    assert ranked[0].total_score > ranked[1].total_score
+    assert [entry.user.id for entry in ranked] == ["all", "friend-a", "friend-b"]
+    assert ranked[1].total_score > ranked[2].total_score
+
+
+def test_cached_service_compares_self_to_all_users(tmp_path: Path) -> None:
+    service = CachedComparisonService(_store_with_comparisons(tmp_path / "cache.sqlite3"))
+
+    matches = service.compare("all", "movie")
+
+    assert any(match.title == "Alien" for match in matches)
+    assert any(match.title == "Aliens" for match in matches)
 
 
 def test_cached_service_reports_missing_cache_status(tmp_path: Path) -> None:
@@ -111,7 +120,7 @@ def test_ranked_users_are_memoized_by_media_type(tmp_path: Path, monkeypatch: py
     second = service.ranked_users("movie")
 
     assert first == second
-    assert calls["count"] == 2
+    assert calls["count"] == 3
 
 
 def test_comparison_and_random_reuse_memoized_results(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

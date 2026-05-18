@@ -9,6 +9,8 @@ from plexmatch.matching import candidates, support_counts
 from plexmatch.models import Item, Match, User
 from plexmatch.scoring import pick_random_match, score_candidates
 
+ALL_USERS_ID = "all"
+
 
 @dataclass(frozen=True)
 class CacheStatus:
@@ -87,6 +89,16 @@ class CachedComparisonService:
                 )
             )
         ranked = sorted(ranked, key=lambda item: (-item.total_score, item.user.title.lower()))
+        all_matches = self.compare(ALL_USERS_ID, normalized_type)
+        ranked = [
+            RankedUser(
+                user=User(ALL_USERS_ID, "All"),
+                total_score=sum(match.score for match in all_matches),
+                match_count=len(all_matches),
+                top_score=max((match.score for match in all_matches), default=0),
+            ),
+            *ranked,
+        ]
         snapshot.ranked_by_type[normalized_type] = ranked
         return ranked
 
@@ -157,7 +169,7 @@ class CachedComparisonService:
 
     def _compute_comparison(self, snapshot: WebSnapshot, user_id: str, media_type: str) -> list[Match]:
         self_items = self._watchlist(snapshot, snapshot.self_user.id)
-        other_items = self._watchlist(snapshot, user_id)
+        other_items = self._all_other_items(snapshot) if user_id == ALL_USERS_ID else self._watchlist(snapshot, user_id)
         candidate_items = candidates(self_items, other_items, media_type)
         other_watchlists = [
             watchlist
@@ -170,6 +182,14 @@ class CachedComparisonService:
             support_counts(candidate_items, other_watchlists, media_type),
             availability,
         )
+
+    def _all_other_items(self, snapshot: WebSnapshot) -> list[Item]:
+        return [
+            item
+            for user_id, watchlist in snapshot.watchlists.items()
+            if user_id != snapshot.self_user.id
+            for item in watchlist
+        ]
 
     def _watchlist(self, snapshot: WebSnapshot, user_id: str) -> list[Item]:
         items = snapshot.watchlists.get(user_id)

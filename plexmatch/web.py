@@ -252,44 +252,50 @@ APP_HTML = """
     .availability {
       display: inline-flex;
       align-items: center;
-      gap: 7px;
-      min-width: 92px;
-      height: 26px;
-      padding: 0 9px;
+      gap: 6px;
+      min-width: 78px;
+      height: 24px;
+      padding: 0 8px;
       border-radius: 999px;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 600;
+      border: 1px solid transparent;
     }
     .availability .mark {
       display: inline-grid;
       place-items: center;
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
-      color: white;
-      font-size: 11px;
+      font-size: 10px;
       line-height: 1;
     }
     .availability.yes {
-      color: #166534;
-      background: #dcfce7;
+      color: #2f5d46;
+      background: #eef8f1;
+      border-color: #cfe8d7;
     }
     .availability.yes .mark {
-      background: #16a34a;
+      color: #2f5d46;
+      background: #d7efde;
     }
     .availability.no {
-      color: #991b1b;
-      background: #fee2e2;
+      color: #7a4a4a;
+      background: #faf0f0;
+      border-color: #efd6d6;
     }
     .availability.no .mark {
-      background: #dc2626;
+      color: #7a4a4a;
+      background: #efdada;
     }
     .availability.unknown {
-      color: #525252;
-      background: #e5e5e5;
+      color: #5f6368;
+      background: #f2f3f4;
+      border-color: #dddee0;
     }
     .availability.unknown .mark {
-      background: #737373;
+      color: #5f6368;
+      background: #e3e5e7;
     }
     code {
       display: block;
@@ -349,7 +355,7 @@ APP_HTML = """
     </section>
   </main>
   <script>
-    let selectedUserId = null;
+    let selectedUserId = "all";
     let rankedUsers = [];
     let isLoading = false;
     const usersEl = document.getElementById("users");
@@ -402,8 +408,8 @@ APP_HTML = """
         option.value = entry.user.id;
         option.textContent = `${entry.user.title} (${entry.total_score})`;
         mobileUserSelectEl.appendChild(option);
-        if (index === 0 && !selectedUserId) selectedUserId = entry.user.id;
       });
+      if (!rankedUsers.some(entry => entry.user.id === selectedUserId)) selectedUserId = "all";
       mobileUserSelectEl.value = selectedUserId || "";
     }
 
@@ -469,7 +475,7 @@ APP_HTML = """
       setLoading(false);
     }
 
-    mediaTypeEl.onchange = () => { selectedUserId = null; loadUsers(); };
+    mediaTypeEl.onchange = () => loadUsers();
     mobileUserSelectEl.onchange = () => selectUser(mobileUserSelectEl.value);
     topLimitEl.onchange = loadComparison;
     document.getElementById("randomLow").onclick = () => randomPick("low");

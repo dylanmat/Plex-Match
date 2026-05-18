@@ -57,8 +57,16 @@ def test_cached_users_and_comparison_endpoints(tmp_path: Path) -> None:
     users = client.get("/api/users/top").json()["users"]
     matches = client.get("/api/compare/friend-a?media_type=movie").json()["matches"]
 
-    assert users[0]["user"]["id"] == "friend-a"
+    assert users[0]["user"]["id"] == "all"
     assert users[0]["total_score"] > 0
+    assert matches[0]["title"] == "Alien"
+
+
+def test_all_user_comparison_endpoint(tmp_path: Path) -> None:
+    client = _cached_app(tmp_path / "cache.sqlite3")
+
+    matches = client.get("/api/compare/all?media_type=movie").json()["matches"]
+
     assert matches[0]["title"] == "Alien"
 
 
