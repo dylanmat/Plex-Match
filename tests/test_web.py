@@ -38,6 +38,8 @@ def test_dashboard_loads() -> None:
     assert "sourceLabel" in response.text
     assert "mobileUserSelect" in response.text
     assert "availability yes" in response.text
+    assert "<span>Local</span>" in response.text
+    assert 'return "Both"' in response.text
     assert "score-pill" in response.text
     assert "supportInfo" in response.text
 
@@ -51,6 +53,21 @@ def test_missing_cache_returns_setup_guidance(tmp_path: Path) -> None:
     data = response.json()
     assert data["status"]["ready"] is False
     assert "python -m plexmatch --list-users" in data["status"]["commands"]
+
+
+def test_stale_cache_still_renders_with_warning(tmp_path: Path) -> None:
+    store = CacheStore(tmp_path / "cache.sqlite3")
+    store.set_users("account-1", [User("self", "Owner", True), User("friend-a", "Friend A")], -1)
+    store.set_watchlist("account-1", "self", [Item("Alien", 1979, "movie", None, "tt0078748", None)], -1)
+    store.set_watchlist("account-1", "friend-a", [Item("Alien", 1979, "movie", None, "tt0078748", None)], -1)
+    client = TestClient(create_app(store))
+
+    response = client.get("/api/users/top")
+
+    data = response.json()
+    assert data["users"]
+    assert data["status"]["ready"] is True
+    assert data["status"]["freshness"] == "stale"
 
 
 def test_cached_users_and_comparison_endpoints(tmp_path: Path) -> None:

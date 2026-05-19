@@ -34,6 +34,11 @@ Builds cache-backed user rankings, comparisons, and random picks for both CLI-ad
 
 Suggested module: `plexmatch/service.py`
 
+### Refresh Scheduler Layer
+Refreshes expired cache entries from the CLI side while preserving the web UI token boundary.
+
+Suggested module: `plexmatch/refresh.py`
+
 ### Plex API Layer
 Encapsulates Plex community/GraphQL calls. This should be the only layer aware of endpoint URLs, GraphQL query documents, pagination mechanics, headers, and raw response shapes.
 
@@ -91,7 +96,16 @@ Suggested module: `plexmatch/output.py`
 6. Users are ranked by total scored matches against `self`.
 7. Selected comparison results are memoized by user and media type, then filtered and randomized from cache only.
 8. The frontend fetches ranked users on initial load or media-type changes; selecting a user only fetches that comparison.
-9. Missing cache state returns setup guidance instead of calling Plex APIs.
+9. Expired cache entries are shown as stale data instead of being deleted.
+10. Missing cache state returns setup guidance instead of calling Plex APIs.
+
+## Cache Refresh Flow
+1. User runs `python -m plexmatch --refresh-cache` or keeps `--cache-scheduler` running.
+2. CLI/scheduler reads Plex credentials from `.env` or environment.
+3. Scheduler checks cache metadata and refreshes only expired or missing entries.
+4. Users and watchlists default to 6-hour TTLs; local library defaults to 24 hours.
+5. Failed individual refreshes keep stale data and continue with sanitized warnings.
+6. Web UI observes the updated SQLite file mtime and rebuilds its in-memory snapshot.
 
 ## Plex GraphQL Integration
 - Endpoint target: Plex cloud/community GraphQL API.
@@ -121,4 +135,5 @@ Minimum V1 acceptance checks:
 - Optional local Plex server availability checks through `PLEX_SERVER_URL` and `PLEX_SERVER_TOKEN`.
 - Project-local SQLite cache at `.plexmatch/cache.sqlite3` by default, overrideable with `PLEXMATCH_CACHE_PATH`.
 - Local FastAPI web UI reads cache only and does not access Plex tokens.
+- CLI scheduler owns cache refresh and is allowed to read Plex credentials.
 - Optional future TMDb, Trakt, Letterboxd, or IMDb import/enrichment.

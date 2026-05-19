@@ -17,6 +17,8 @@ class CacheStatus:
     ready: bool
     message: str
     commands: list[str]
+    freshness: str = "missing"
+    expires_at: int | None = None
 
 
 @dataclass(frozen=True)
@@ -31,6 +33,8 @@ class RankedUser:
 class WebSnapshot:
     cache_mtime: float
     computed_at: float
+    freshness: str
+    expires_at: int | None
     namespace: str
     users: list[User]
     self_user: User
@@ -47,8 +51,10 @@ class CachedComparisonService:
 
     def status(self) -> CacheStatus:
         try:
-            self._snapshot_for_read()
-            return CacheStatus(True, "Cache is ready.", [])
+            snapshot = self._snapshot_for_read()
+            if snapshot.freshness == "stale":
+                return CacheStatus(True, "Cache is stale. Results are still shown while the scheduler refreshes data.", [], "stale", snapshot.expires_at)
+            return CacheStatus(True, "Cache is ready.", [], "fresh", snapshot.expires_at)
         except CacheError as exc:
             return CacheStatus(False, str(exc), _refresh_commands())
 
@@ -120,6 +126,8 @@ class CachedComparisonService:
         return {
             "cache_mtime": snapshot.cache_mtime,
             "computed_at": snapshot.computed_at,
+            "freshness": snapshot.freshness,
+            "expires_at": snapshot.expires_at or 0,
         }
 
     def _snapshot_for_read(self) -> WebSnapshot:
@@ -136,28 +144,38 @@ class CachedComparisonService:
             raise CacheError("Cached users were not found.") from exc
 
     def _build_snapshot(self, cache_mtime: float) -> WebSnapshot:
-        namespaces = self.cache.user_namespaces()
+        namespaces = self.cache.user_namespaces(include_stale=True)
         if not namespaces:
             raise CacheError("Cached users were not found.")
         namespace = namespaces[0]
-        users = self.cache.get_users(namespace)
-        if not users:
+        users_entry = self.cache.get_users_entry(namespace)
+        if not users_entry:
             raise CacheError("Cached users were not found.")
+        users = users_entry.payload
         self_user = self.self_user(users)
         watchlists: dict[str, list[Item]] = {}
+        entries = [users_entry]
         for user in users:
-            items = self.cache.get_watchlist(namespace, user.id)
-            if items is not None:
-                watchlists[user.id] = items
+            entry = self.cache.get_watchlist_entry(namespace, user.id)
+            if entry is not None:
+                watchlists[user.id] = entry.payload
+                entries.append(entry)
         if self_user.id not in watchlists:
             raise CacheError("The self watchlist is not cached.")
         local_items = None
-        local_namespaces = self.cache.local_library_namespaces()
+        local_namespaces = self.cache.local_library_namespaces(include_stale=True)
         if local_namespaces:
-            local_items = self.cache.get_cached_local_items(local_namespaces[0])
+            local_entry = self.cache.get_cached_local_items_entry(local_namespaces[0])
+            if local_entry is not None:
+                local_items = local_entry.payload
+                entries.append(local_entry)
+        expires_at = min((entry.expires_at for entry in entries), default=None)
+        freshness = "stale" if any(not entry.is_fresh for entry in entries) else "fresh"
         return WebSnapshot(
             cache_mtime=cache_mtime,
             computed_at=time.time(),
+            freshness=freshness,
+            expires_at=expires_at,
             namespace=namespace,
             users=users,
             self_user=self_user,

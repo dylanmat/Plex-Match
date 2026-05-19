@@ -78,6 +78,19 @@ def test_cached_service_reports_missing_cache_status(tmp_path: Path) -> None:
     assert "python -m plexmatch --list-users" in status.commands
 
 
+def test_cached_service_renders_stale_cache(tmp_path: Path) -> None:
+    store = _store_with_comparisons(tmp_path / "cache.sqlite3")
+    store.set_users("account-1", store.get_users("account-1"), -1)
+    service = CachedComparisonService(store)
+
+    status = service.status()
+    matches = service.compare("friend-a", "movie")
+
+    assert status.ready is True
+    assert status.freshness == "stale"
+    assert matches
+
+
 def test_cached_service_filters_and_randomizes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     service = CachedComparisonService(_store_with_comparisons(tmp_path / "cache.sqlite3"))
 

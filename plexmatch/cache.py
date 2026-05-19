@@ -4,9 +4,9 @@ import json
 import os
 import sqlite3
 import time
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Callable, TypeVar
+from typing import Callable, Generic, TypeVar
 
 from plexmatch.models import Item, User
 
@@ -21,6 +21,21 @@ class CacheError(RuntimeError):
     pass
 
 
+@dataclass(frozen=True)
+class CacheEntry(Generic[T]):
+    payload: T
+    created_at: int
+    expires_at: int
+
+    @property
+    def is_fresh(self) -> bool:
+        return self.expires_at > int(time.time())
+
+    @property
+    def freshness(self) -> str:
+        return "fresh" if self.is_fresh else "stale"
+
+
 class CacheStore:
     def __init__(self, path: Path | str | None = None) -> None:
         self.path = Path(path) if path is not None else cache_path()
@@ -33,45 +48,66 @@ class CacheStore:
             raise CacheError("Could not clear cache.") from exc
 
     def get_users(self, namespace: str) -> list[User] | None:
-        return self._get_json(namespace, "users", "all", _users_from_payload)
+        entry = self.get_users_entry(namespace)
+        return entry.payload if entry and entry.is_fresh else None
+
+    def get_users_entry(self, namespace: str) -> CacheEntry[list[User]] | None:
+        return self._get_json_entry(namespace, "users", "all", _users_from_payload)
 
     def set_users(self, namespace: str, users: list[User], ttl_seconds: int) -> None:
         self._set_json(namespace, "users", "all", [asdict(user) for user in users], ttl_seconds)
 
     def get_watchlist(self, namespace: str, user_id: str) -> list[Item] | None:
-        return self._get_json(namespace, "watchlist", user_id, _items_from_payload)
+        entry = self.get_watchlist_entry(namespace, user_id)
+        return entry.payload if entry and entry.is_fresh else None
+
+    def get_watchlist_entry(self, namespace: str, user_id: str) -> CacheEntry[list[Item]] | None:
+        return self._get_json_entry(namespace, "watchlist", user_id, _items_from_payload)
 
     def set_watchlist(self, namespace: str, user_id: str, items: list[Item], ttl_seconds: int) -> None:
         self._set_json(namespace, "watchlist", user_id, [asdict(item) for item in items], ttl_seconds)
 
     def get_local_items(self, server_url: str) -> list[Item] | None:
-        return self._get_json(_normalize_server_url(server_url), "local_library", "all", _items_from_payload)
+        entry = self.get_local_items_entry(server_url)
+        return entry.payload if entry and entry.is_fresh else None
+
+    def get_local_items_entry(self, server_url: str) -> CacheEntry[list[Item]] | None:
+        return self._get_json_entry(_normalize_server_url(server_url), "local_library", "all", _items_from_payload)
 
     def set_local_items(self, server_url: str, items: list[Item], ttl_seconds: int) -> None:
         self._set_json(_normalize_server_url(server_url), "local_library", "all", [asdict(item) for item in items], ttl_seconds)
 
-    def user_namespaces(self) -> list[str]:
-        return self._list_namespaces("users")
+    def user_namespaces(self, include_stale: bool = False) -> list[str]:
+        return self._list_namespaces("users", include_stale)
 
-    def local_library_namespaces(self) -> list[str]:
-        return self._list_namespaces("local_library")
+    def local_library_namespaces(self, include_stale: bool = False) -> list[str]:
+        return self._list_namespaces("local_library", include_stale)
 
     def get_cached_local_items(self, namespace: str) -> list[Item] | None:
-        return self._get_json(namespace, "local_library", "all", _items_from_payload)
+        entry = self.get_cached_local_items_entry(namespace)
+        return entry.payload if entry and entry.is_fresh else None
 
-    def _list_namespaces(self, kind: str) -> list[str]:
+    def get_cached_local_items_entry(self, namespace: str) -> CacheEntry[list[Item]] | None:
+        return self._get_json_entry(namespace, "local_library", "all", _items_from_payload)
+
+    def cached_watchlist_user_ids(self, namespace: str, include_stale: bool = False) -> list[str]:
+        return self._list_keys(namespace, "watchlist", include_stale)
+
+    def _list_namespaces(self, kind: str, include_stale: bool = False) -> list[str]:
         now = int(time.time())
         conn: sqlite3.Connection | None = None
         try:
             conn = self._connect()
+            freshness_clause = "" if include_stale else "AND expires_at > ?"
+            params: tuple[object, ...] = (kind,) if include_stale else (kind, now)
             rows = conn.execute(
-                """
+                f"""
                 SELECT namespace
                 FROM cache_entries
-                WHERE kind = ? AND expires_at > ?
+                WHERE kind = ? {freshness_clause}
                 ORDER BY created_at DESC
                 """,
-                (kind, now),
+                params,
             ).fetchall()
             return [str(row["namespace"]) for row in rows]
         except (OSError, sqlite3.Error) as exc:
@@ -80,14 +116,36 @@ class CacheStore:
             if conn is not None:
                 conn.close()
 
-    def _get_json(self, namespace: str, kind: str, key: str, factory: Callable[[object], T]) -> T | None:
+    def _list_keys(self, namespace: str, kind: str, include_stale: bool = False) -> list[str]:
         now = int(time.time())
+        conn: sqlite3.Connection | None = None
+        try:
+            conn = self._connect()
+            freshness_clause = "" if include_stale else "AND expires_at > ?"
+            params: tuple[object, ...] = (namespace, kind) if include_stale else (namespace, kind, now)
+            rows = conn.execute(
+                f"""
+                SELECT cache_key
+                FROM cache_entries
+                WHERE namespace = ? AND kind = ? {freshness_clause}
+                ORDER BY created_at DESC
+                """,
+                params,
+            ).fetchall()
+            return [str(row["cache_key"]) for row in rows]
+        except (OSError, sqlite3.Error) as exc:
+            raise CacheError("Could not read cache.") from exc
+        finally:
+            if conn is not None:
+                conn.close()
+
+    def _get_json_entry(self, namespace: str, kind: str, key: str, factory: Callable[[object], T]) -> CacheEntry[T] | None:
         conn: sqlite3.Connection | None = None
         try:
             conn = self._connect()
             row = conn.execute(
                 """
-                SELECT payload, expires_at
+                SELECT payload, created_at, expires_at
                 FROM cache_entries
                 WHERE namespace = ? AND kind = ? AND cache_key = ?
                 """,
@@ -95,14 +153,11 @@ class CacheStore:
             ).fetchone()
             if row is None:
                 return None
-            if int(row["expires_at"]) <= now:
-                conn.execute(
-                    "DELETE FROM cache_entries WHERE namespace = ? AND kind = ? AND cache_key = ?",
-                    (namespace, kind, key),
-                )
-                conn.commit()
-                return None
-            return factory(json.loads(row["payload"]))
+            return CacheEntry(
+                payload=factory(json.loads(row["payload"])),
+                created_at=int(row["created_at"]),
+                expires_at=int(row["expires_at"]),
+            )
         except (OSError, sqlite3.Error, json.JSONDecodeError, TypeError, ValueError) as exc:
             raise CacheError("Could not read cache.") from exc
         finally:

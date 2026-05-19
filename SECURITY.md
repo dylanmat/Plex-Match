@@ -36,6 +36,8 @@ The project maintainer owns security decisions until formal ownership is assigne
 - `.plexmatch/` is ignored by git, and `--clear-cache` deletes cached metadata.
 - Cache retention defaults to 6 hours and can be changed with `PLEX_CACHE_TTL_HOURS` or `--cache-ttl-hours`.
 - The web UI reads cache only and must not read `.env`, Plex tokens, or local server tokens.
+- The CLI scheduler may read Plex credentials to refresh cache entries; it must not expose tokens in cache, logs, or web responses.
+- Expired cache entries may remain visible as stale internal metadata until refreshed or cleared.
 
 ## Dependency and Runtime Controls
 - Pin or constrain dependencies once implementation stabilizes.

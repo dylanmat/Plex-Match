@@ -37,6 +37,7 @@ def create_app(cache: CacheStore | None = None) -> FastAPI:
         try:
             users = [ranked_user_to_dict(user) for user in service.ranked_users(media_type)]
             return {
+                "status": asdict(service.status()),
                 "users": users,
                 "result_count": len(users),
                 **service.metadata(),
@@ -49,6 +50,7 @@ def create_app(cache: CacheStore | None = None) -> FastAPI:
         try:
             matches = [match_to_dict(match) for match in service.compare(user_id, media_type, top)]
             return {
+                "status": asdict(service.status()),
                 "matches": matches,
                 "result_count": len(matches),
                 **service.metadata(),
@@ -62,6 +64,7 @@ def create_app(cache: CacheStore | None = None) -> FastAPI:
             raise HTTPException(status_code=400, detail="mode must be high or low")
         try:
             return {
+                "status": asdict(service.status()),
                 "match": match_to_dict(service.random_match(request.user_id, request.mode, request.media_type, request.top)),
                 **service.metadata(),
             }
@@ -239,7 +242,6 @@ APP_HTML = """
       border-radius: 999px;
       font-size: 12px;
       font-weight: 700;
-      text-transform: uppercase;
       letter-spacing: 0;
     }
     .badge.both {
@@ -426,14 +428,18 @@ APP_HTML = """
     const topLimitEl = document.getElementById("topLimit");
 
     function availabilityLabel(value) {
-      if (value === true) return `<span class="availability yes"><span class="mark">✓</span><span>local</span></span>`;
-      if (value === false) return `<span class="availability no"><span class="mark">×</span><span>missing</span></span>`;
-      return `<span class="availability unknown"><span class="mark">?</span><span>unknown</span></span>`;
+      if (value === true) return `<span class="availability yes"><span class="mark">✓</span><span>Local</span></span>`;
+      if (value === false) return `<span class="availability no"><span class="mark">×</span><span>Missing</span></span>`;
+      return `<span class="availability unknown"><span class="mark">?</span><span>Unknown</span></span>`;
     }
 
     function showStatus(status) {
-      if (!status || status.ready) {
+      if (!status || (status.ready && status.freshness !== "stale")) {
         statusEl.innerHTML = "";
+        return;
+      }
+      if (status.ready && status.freshness === "stale") {
+        statusEl.innerHTML = `<div class="status warn"><div class="title">${status.message}</div><div class="meta">Run <code>python -m plexmatch --refresh-cache</code> or keep <code>python -m plexmatch --cache-scheduler</code> running.</div></div>`;
         return;
       }
       const commands = (status.commands || []).map(command => `<code>${command}</code>`).join("");
@@ -448,9 +454,9 @@ APP_HTML = """
     }
 
     function sourceLabel(value) {
-      if (value === "both") return "both";
-      if (value === "user_a") return "self";
-      if (value === "user_b") return "other";
+      if (value === "both") return "Both";
+      if (value === "user_a") return "Self";
+      if (value === "user_b") return "Other";
       return value || "unknown";
     }
 

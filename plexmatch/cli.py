@@ -70,6 +70,10 @@ def main() -> int:
     p.add_argument("--web", action="store_true", help="Start the local cache-backed web UI.")
     p.add_argument("--web-host", default="127.0.0.1", help="Host for the local web UI.")
     p.add_argument("--web-port", type=int, default=8000, help="Port for the local web UI.")
+    p.add_argument("--refresh-cache", action="store_true", help="Refresh expired or missing cache entries once and exit.")
+    p.add_argument("--cache-scheduler", action="store_true", help="Continuously refresh expired cache entries.")
+    p.add_argument("--all", action="store_true", help="Refresh all known cache entries when used with --refresh-cache or --cache-scheduler.")
+    p.add_argument("--scheduler-interval-minutes", type=float, default=15, help="Minutes between scheduler refresh checks.")
     args = p.parse_args()
 
     assert_runtime_dependencies()
@@ -91,6 +95,26 @@ def main() -> int:
         except ModuleNotFoundError as exc:
             raise SystemExit("Missing web dependencies. Run `pip install -r requirements.txt` and retry.") from exc
         uvicorn.run("plexmatch.web:create_app", factory=True, host=args.web_host, port=args.web_port)
+        return 0
+
+    if args.refresh_cache or args.cache_scheduler:
+        token = token_from_env_or_arg(args.token)
+        from plexmatch.refresh import refresh_once, run_scheduler
+        if args.cache_scheduler:
+            if args.scheduler_interval_minutes <= 0:
+                p.error("--scheduler-interval-minutes must be positive.")
+            try:
+                run_scheduler(token, interval_minutes=args.scheduler_interval_minutes, force=args.all)
+            except ValueError as exc:
+                raise SystemExit(str(exc))
+            return 0
+        try:
+            stats = refresh_once(token, force=args.all)
+        except ValueError as exc:
+            raise SystemExit(str(exc))
+        print(stats.line())
+        for message in stats.messages:
+            print(message)
         return 0
 
     if args.auth_pin:

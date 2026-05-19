@@ -69,3 +69,12 @@ Use this format for each new decision:
 - Consequences: Web views are fast and token-free, but users must populate or refresh cache through CLI commands before using the web UI.
 - Alternatives Considered: Flask templates, stdlib HTTP server, web-triggered Plex API refreshes.
 - Supersedes/Superseded By: None
+
+### ADR-007 - Refresh Cache from CLI Scheduler
+- Date: 2026-05-19
+- Status: Accepted
+- Context: The web UI should remain token-free, but expired cache entries should not make the interface unusable.
+- Decision: Cache refresh is owned by CLI commands and a CLI scheduler loop. Expired cache entries remain readable as stale data until refreshed.
+- Consequences: The security boundary stays clear: CLI/scheduler may read credentials, web reads SQLite only. Running the scheduler is recommended for long-lived web sessions.
+- Alternatives Considered: Web-triggered refresh, manual-only refresh, deleting expired cache rows.
+- Supersedes/Superseded By: None

@@ -66,6 +66,9 @@ PlexMatch caches normalized users, watchlists, and local library items in `.plex
 
 ```env
 PLEX_CACHE_TTL_HOURS=6
+PLEX_USERS_CACHE_TTL_HOURS=6
+PLEX_WATCHLIST_CACHE_TTL_HOURS=6
+PLEX_LOCAL_CACHE_TTL_HOURS=24
 PLEXMATCH_CACHE_PATH=.plexmatch/cache.sqlite3
 ```
 
@@ -78,6 +81,18 @@ python -m plexmatch --clear-cache
 
 For Docker, mount `.plexmatch/` or set `PLEXMATCH_CACHE_PATH` to a mounted path such as `/app/.plexmatch/cache.sqlite3`. Tokens are not stored in the cache.
 
+## Cache Refresh Scheduler
+The web UI is cache-only, so use the CLI scheduler to keep cache entries fresh without exposing tokens to web handlers.
+
+```bash
+python -m plexmatch --refresh-cache
+python -m plexmatch --refresh-cache --all
+python -m plexmatch --cache-scheduler
+python -m plexmatch --cache-scheduler --scheduler-interval-minutes 15
+```
+
+`--refresh-cache` updates only expired or missing entries. `--all` refreshes all known users/watchlists and local library data. Users and watchlists default to 6-hour TTLs; local library availability defaults to 24 hours. Expired entries remain visible as stale data until the scheduler refreshes them.
+
 ## Local Web UI
 The web UI is cache-only by design. Populate cache with CLI commands first, then start the local server:
 
@@ -87,7 +102,7 @@ python -m plexmatch --user-a self --user-b "Friend Name"
 python -m plexmatch --web
 ```
 
-Open `http://127.0.0.1:8000`. The default view compares `self` against cached users, ranks users by total scored matches, and supports media filters plus low-confidence and high-confidence random picks. Web results are also memoized in memory and refresh automatically when the SQLite cache file changes. Use `--web-host` and `--web-port` when running in Docker or another local environment.
+Open `http://127.0.0.1:8000`. The default view compares `self` against cached users, ranks users by total scored matches, and supports media filters plus low-confidence and high-confidence random picks. Web results are memoized in memory and refresh automatically when the SQLite cache file changes. If cache entries expire, stale results remain visible with a warning while the CLI scheduler refreshes them. Use `--web-host` and `--web-port` when running in Docker or another local environment.
 
 
 ## Authentication (Plex JWT Recommended)
@@ -110,6 +125,7 @@ Open `http://127.0.0.1:8000`. The default view compares `self` against cached us
 
 
 ## Changelog
+- Unreleased: Add CLI-owned cache scheduler and stale-cache web fallback.
 - 0.3.0: Add cache-only FastAPI web UI for ranked self comparisons and random picks.
 - 0.2.0: Add project-local SQLite caching for users, watchlists, and local library items.
 - 0.1.32: Add optional local Plex server availability enrichment and scoring/output support.

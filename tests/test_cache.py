@@ -44,6 +44,22 @@ def test_cache_ignores_expired_entries(tmp_path: Path) -> None:
     assert store.get_users("account-1") is None
 
 
+def test_expired_entries_remain_readable_as_stale(tmp_path: Path) -> None:
+    store = CacheStore(tmp_path / "cache.sqlite3")
+    users = [User("self", "Owner", True)]
+    store.set_users("account-1", users, 1)
+
+    with sqlite3.connect(store.path) as conn:
+        conn.execute("UPDATE cache_entries SET expires_at = ?", (int(time.time()) - 1,))
+
+    entry = store.get_users_entry("account-1")
+
+    assert entry is not None
+    assert entry.payload == users
+    assert entry.freshness == "stale"
+    assert store.user_namespaces(include_stale=True) == ["account-1"]
+
+
 def test_clear_cache_removes_database_file(tmp_path: Path) -> None:
     store = CacheStore(tmp_path / "cache.sqlite3")
     store.set_users("account-1", [User("self", "Owner", True)], 60)

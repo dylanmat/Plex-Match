@@ -22,6 +22,7 @@
 - Show cache setup guidance instead of triggering Plex API calls from web handlers.
 - Keep controls ergonomic for repeated movie-night use: ranked users, filters, and random pick actions should be immediately visible.
 - Avoid full user reranking on simple UI interactions such as selecting a user or making a random pick.
+- Show stale cache state clearly when data is expired but still available.
 
 ## Testing Standards
 - Use deterministic unit tests with stable fixtures.
@@ -50,3 +51,4 @@
 - Default logging level should not expose sensitive data.
 - Debug logs may include response shapes but must redact tokens and sensitive identifiers where possible.
 - Provide a clear bug report template later if the project becomes public.
+- Cache refresh jobs should update only expired entries by default and continue past individual refresh failures.
