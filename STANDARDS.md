@@ -14,6 +14,8 @@
 - Support `--help` for all commands/options.
 - Support `.env` loading without requiring it.
 - Do not echo secrets.
+- Auth commands may print only the final Plex token intentionally requested by the user.
+- Keep saved device auth credentials separate from temporary PIN session state.
 - Provide useful error messages for invalid tokens, inaccessible users, empty watchlists, and no overlaps.
 
 ## Web UI Standards
@@ -27,6 +29,7 @@
 ## Testing Standards
 - Use deterministic unit tests with stable fixtures.
 - Mock Plex API calls in unit tests.
+- Test auth refresh paths without live Plex calls or real private keys in fixtures.
 - Keep live API calls out of default test runs.
 - Add regression tests for normalization and duplicate handling.
 - Separate integration tests from unit tests.
@@ -52,3 +55,4 @@
 - Debug logs may include response shapes but must redact tokens and sensitive identifiers where possible.
 - Provide a clear bug report template later if the project becomes public.
 - Cache refresh jobs should update only expired entries by default and continue past individual refresh failures.
+- Scheduler token recovery should be sanitized and should not write refreshed tokens into `.env`.

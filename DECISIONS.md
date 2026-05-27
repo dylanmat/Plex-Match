@@ -78,3 +78,12 @@ Use this format for each new decision:
 - Consequences: The security boundary stays clear: CLI/scheduler may read credentials, web reads SQLite only. Running the scheduler is recommended for long-lived web sessions.
 - Alternatives Considered: Web-triggered refresh, manual-only refresh, deleting expired cache rows.
 - Supersedes/Superseded By: None
+
+### ADR-008 - Persist Plex Device Credentials for Token Refresh
+- Date: 2026-05-26
+- Status: Accepted
+- Context: Plex JWTs expire, and repeatedly deleting/re-authorizing the `PlexMatch CLI` device is operationally noisy. Reusing an authorized Plex device requires retaining the local private key that matches the registered public JWK.
+- Decision: PlexMatch stores temporary PIN state in `.plexmatch_pin_auth.json` and persistent reusable device credentials in `.plexmatch_device_auth.json`. `--auth-refresh` signs Plex nonces with the saved private key and exchanges the signed device JWT for a new Plex token.
+- Consequences: Token renewal no longer requires browser approval while the saved device credentials and Plex authorized device remain valid. The device credential file is restricted local auth material and must stay ignored by git.
+- Alternatives Considered: Always rerun PIN auth, write refreshed tokens into `.env` automatically, or make the web UI perform token refresh.
+- Supersedes/Superseded By: None

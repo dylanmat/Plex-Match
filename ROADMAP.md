@@ -68,6 +68,8 @@ Track PlexMatch development priorities, sequencing, and delivery status.
   - Default view compares `self` against cached users.
   - Top users are ranked by total scored matches with `self`.
   - Results and random picks read from cache only.
+  - CLI scheduler keeps expired cache entries refreshed while web remains cache-only.
+  - Persistent Plex device auth supports token renewal without deleting the authorized device.
 
 ## Later
 

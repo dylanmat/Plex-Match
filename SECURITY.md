@@ -8,8 +8,11 @@ The project maintainer owns security decisions until formal ownership is assigne
 ## Credential Handling Policy
 - Store Plex tokens only in approved local mechanisms such as environment variables or `.env` files.
 - Never commit `.env` files or credentials.
+- Never commit `.plexmatch_pin_auth.json`, `.plexmatch_device_auth.json`, or other local auth artifacts.
 - Provide `.env.example` with placeholder values only.
 - Never print tokens in normal output, debug output, logs, exceptions, screenshots, or test fixtures.
+- The only exception is auth commands printing the final refreshed Plex token directly to the terminal for the user to copy into `.env`.
+- Never print device private keys or signed device JWTs.
 - Do not request or store Plex passwords.
 - Prefer Plex tokens with the minimum practical access.
 - Rotate tokens immediately after suspected exposure.
@@ -37,7 +40,9 @@ The project maintainer owns security decisions until formal ownership is assigne
 - Cache retention defaults to 6 hours and can be changed with `PLEX_CACHE_TTL_HOURS` or `--cache-ttl-hours`.
 - The web UI reads cache only and must not read `.env`, Plex tokens, or local server tokens.
 - The CLI scheduler may read Plex credentials to refresh cache entries; it must not expose tokens in cache, logs, or web responses.
+- The CLI scheduler may use saved device credentials to recover from an expired Plex token, but it must not write refreshed tokens into `.env`.
 - Expired cache entries may remain visible as stale internal metadata until refreshed or cleared.
+- `.plexmatch_device_auth.json` is restricted local credential material. If the matching Plex authorized device is deleted or this file is lost, run the PIN flow again.
 
 ## Dependency and Runtime Controls
 - Pin or constrain dependencies once implementation stabilizes.

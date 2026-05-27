@@ -17,6 +17,7 @@ PlexMatch helps Plex users choose what to watch by comparing watchlists, finding
 
 ## Domain Vocabulary
 - Plex token: authentication token used to call Plex services (legacy token or new 7-day JWT).
+- Device auth credentials: local private-key material used by CLI auth commands to refresh Plex JWTs for an authorized `PlexMatch CLI` device.
 - Community API: Plex cloud endpoint used by Plex social/watchlist features.
 - GraphQL operation: Plex cloud query used to retrieve users and watchlist hubs.
 - Watchlist item: movie, show, or other Plex metadata entry saved by a user.
@@ -25,7 +26,7 @@ PlexMatch helps Plex users choose what to watch by comparing watchlists, finding
 - Weighted random: random selection where higher-scored matches are more likely to be selected.
 
 ## Current State
-- What exists today: Python CLI with Plex watchlist comparison, filtering, scoring, random selection, cross-user support scoring, optional local Plex server availability enrichment, project-local SQLite cache, and cache-only local web UI.
+- What exists today: Python CLI with Plex watchlist comparison, filtering, scoring, random selection, cross-user support scoring, optional local Plex server availability enrichment, project-local SQLite cache, cache-only local web UI, and persistent Plex device auth refresh.
 - Known limitations: Plex's GraphQL/community API is likely undocumented/private and may break.
 - Active risks: API field changes, pagination changes, privacy restrictions, inaccessible watchlists, incomplete metadata, duplicate titles, title/year collisions, and JWT expiry/refresh handling drift.
 
@@ -40,6 +41,7 @@ PlexMatch helps Plex users choose what to watch by comparing watchlists, finding
 
 ## Guardrails
 - Do not log Plex tokens or other secrets.
+- Do not log saved device private keys or signed device JWTs.
 - Do not require Plex passwords.
 - Do not scrape credentials from browsers or local Plex config.
 - Do not depend on local Plex Media Server user lists as the source of watchlist truth.

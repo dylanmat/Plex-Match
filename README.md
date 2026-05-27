@@ -9,7 +9,7 @@ It uses a Plex community/GraphQL approach, normalizes entries by stable IDs, fin
 Current version: `0.3.0`
 
 ## Features
-- PIN + JWK auth bootstrap flow (`--auth-pin`) to obtain a Plex JWT without legacy token
+- PIN + JWK auth bootstrap flow (`--auth-pin`) and saved-device refresh (`--auth-refresh`) for Plex JWTs
 - Python 3.11+ CLI (`python -m plexmatch`)
 - Token input from `--token` or `PLEX_TOKEN` (`.env` supported)
 - List accessible users/friends (`--list-users`)
@@ -27,6 +27,8 @@ Current version: `0.3.0`
 ```bash
 python -m plexmatch --auth-pin
 python -m plexmatch --auth-pin --auth-wait 90
+python -m plexmatch --auth-refresh
+python -m plexmatch --auth-reset
 python -m plexmatch --list-users
 python -m plexmatch --user-a self --user-b "Joy"
 python -m plexmatch --user-a "Dylan" --user-b "Joy"
@@ -93,6 +95,8 @@ python -m plexmatch --cache-scheduler --scheduler-interval-minutes 15
 
 `--refresh-cache` updates only expired or missing entries. `--all` refreshes all known users/watchlists and local library data. Users and watchlists default to 6-hour TTLs; local library availability defaults to 24 hours. Expired entries remain visible as stale data until the scheduler refreshes them.
 
+If `PLEX_TOKEN` is rejected and `.plexmatch_device_auth.json` exists, refresh commands and the scheduler try to renew the token from saved device credentials and continue. They do not edit `.env`; run `python -m plexmatch --auth-refresh` and replace `PLEX_TOKEN` with the printed token.
+
 ## Local Web UI
 The web UI is cache-only by design. Populate cache with CLI commands first, then start the local server:
 
@@ -108,14 +112,16 @@ Open `http://127.0.0.1:8000`. The default view compares `self` against cached us
 ## Authentication (Plex JWT Recommended)
 - Plex now recommends JWT auth with short-lived (7 day) tokens and per-device key registration.
 - PlexMatch currently accepts a token via `--token` or `PLEX_TOKEN`; JWT tokens work in the same `X-Plex-Token` header path as legacy tokens.
-- After `python -m plexmatch --auth-pin` succeeds, save the printed JWT into `PLEX_TOKEN` or pass it with `--token`.
-- For new apps, prefer PIN + JWK registration (`POST https://clients.plex.tv/api/v2/pins`) then exchange with a device-signed JWT that includes the registered JWK `kid` header.
-- For existing legacy-token apps, register JWK at `POST https://clients.plex.tv/api/v2/auth/jwk`, then use nonce + signed device JWT refresh flow (`/auth/nonce` then `/auth/token`).
-- Plan for token refresh every 7 days. If token validation fails (for example, expired token), obtain a fresh JWT and rerun.
+- First setup: run `python -m plexmatch --auth-pin --auth-wait 90`, then save the printed JWT into `PLEX_TOKEN` or pass it with `--token`.
+- A successful PIN exchange saves `.plexmatch_device_auth.json`, which contains the device private key needed to reuse that Plex authorized device.
+- Token renewal: run `python -m plexmatch --auth-refresh`, then replace `PLEX_TOKEN` in `.env` with the printed JWT.
+- Full reset: run `python -m plexmatch --auth-reset`; this removes local PIN/device auth state but does not edit `.env`.
+- Deleting the `PlexMatch CLI` authorized device in Plex invalidates the saved local device credentials. Run `--auth-reset --auth-pin --auth-wait 90` to authorize a new device.
+- PlexMatch uses nonce + signed device JWT refresh flow (`/auth/nonce` then `/auth/token`) and never prints device private keys or signed device JWTs.
 
 ## Security Notes
 - Never commit tokens or `.env` files.
-- Plex tokens are never printed by CLI output.
+- Plex tokens are never printed by normal comparison/cache/web output; auth commands print the final token intentionally for `.env` update.
 - Errors are written without secrets.
 
 ## Known API Limitations
@@ -125,7 +131,7 @@ Open `http://127.0.0.1:8000`. The default view compares `self` against cached us
 
 
 ## Changelog
-- Unreleased: Add CLI-owned cache scheduler and stale-cache web fallback.
+- Unreleased: Add saved Plex device auth refresh and CLI-owned cache scheduler.
 - 0.3.0: Add cache-only FastAPI web UI for ranked self comparisons and random picks.
 - 0.2.0: Add project-local SQLite caching for users, watchlists, and local library items.
 - 0.1.32: Add optional local Plex server availability enrichment and scoring/output support.

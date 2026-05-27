@@ -62,6 +62,8 @@ def main() -> int:
     p.add_argument("--type", choices=["all", "movie", "show", "movies", "shows"], default="all")
     p.add_argument("--format", choices=["table", "json"], default="table")
     p.add_argument("--auth-pin", action="store_true", help="Start/poll Plex PIN+JWK auth flow and print JWT.")
+    p.add_argument("--auth-refresh", action="store_true", help="Refresh a Plex JWT from saved device credentials and print it.")
+    p.add_argument("--auth-reset", action="store_true", help="Delete local Plex PIN and device auth state, then exit unless --auth-pin is also used.")
     p.add_argument("--client-id", default="plexmatch-cli", help="Plex client identifier for PIN+JWK auth.")
     p.add_argument("--auth-wait", type=int, default=0, help="Seconds to poll for PIN approval before exiting.")
     p.add_argument("--no-cache", action="store_true", help="Bypass cache reads and writes for this run.")
@@ -99,7 +101,7 @@ def main() -> int:
 
     if args.refresh_cache or args.cache_scheduler:
         token = token_from_env_or_arg(args.token)
-        from plexmatch.refresh import refresh_once, run_scheduler
+        from plexmatch.refresh import refresh_once_with_auth_recovery, run_scheduler
         if args.cache_scheduler:
             if args.scheduler_interval_minutes <= 0:
                 p.error("--scheduler-interval-minutes must be positive.")
@@ -109,7 +111,7 @@ def main() -> int:
                 raise SystemExit(str(exc))
             return 0
         try:
-            stats = refresh_once(token, force=args.all)
+            _, stats = refresh_once_with_auth_recovery(token, force=args.all)
         except ValueError as exc:
             raise SystemExit(str(exc))
         print(stats.line())
@@ -117,21 +119,43 @@ def main() -> int:
             print(message)
         return 0
 
-    if args.auth_pin:
+    if args.auth_pin or args.auth_refresh or args.auth_reset:
         from plexmatch.api.auth import (
             PinAuthServiceError,
             PinAuthSessionExpired,
+            clear_auth_state,
+            device_auth_available,
             exchange_pin_for_token,
             load_pin_auth_session,
+            refresh_token_from_device_auth,
             start_pin_auth,
         )
+
+        if args.auth_reset:
+            clear_auth_state()
+            print("Plex auth state cleared. .env was not changed.")
+            if not args.auth_pin:
+                return 0
+
+        if args.auth_refresh:
+            try:
+                print(refresh_token_from_device_auth())
+            except PinAuthServiceError as exc:
+                raise SystemExit(str(exc))
+            return 0
 
         def print_pin_instructions(session, prefix: str = "Open this URL in a browser and sign in:") -> None:
             print(prefix)
             print(session.auth_url)
+            print("Fallback URL if Plex Web cannot complete the request:")
+            print(session.fallback_auth_url)
             if session.manual_link_code:
                 print("If needed, open https://plex.tv/link and enter this 4-digit code:")
                 print(session.manual_link_code)
+
+        if device_auth_available():
+            print("Saved Plex device credentials found. Use `--auth-refresh` to renew without browser approval.")
+            print("Use `--auth-reset --auth-pin` only when the saved device should be replaced.")
 
         session = load_pin_auth_session()
         if session is None:
@@ -155,9 +179,9 @@ def main() -> int:
                 time.sleep(2)
             if not token:
                 manual_hint = (
-                    f" | Manual fallback: {session.link_url} (code: {session.manual_link_code})"
+                    f" | Fallback auth URL: {session.fallback_auth_url} | Manual fallback: {session.link_url} (code: {session.manual_link_code})"
                     if session.manual_link_code
-                    else ""
+                    else f" | Fallback auth URL: {session.fallback_auth_url}"
                 )
                 raise SystemExit(
                     f"PIN is not approved yet after waiting {args.auth_wait}s. "
@@ -174,9 +198,9 @@ def main() -> int:
                 raise SystemExit(str(exc))
             if not token:
                 manual_hint = (
-                    f" | Manual fallback: {session.link_url} (code: {session.manual_link_code})"
+                    f" | Fallback auth URL: {session.fallback_auth_url} | Manual fallback: {session.link_url} (code: {session.manual_link_code})"
                     if session.manual_link_code
-                    else ""
+                    else f" | Fallback auth URL: {session.fallback_auth_url}"
                 )
                 raise SystemExit(
                     "PIN is not approved yet. Finish browser auth and run again. "

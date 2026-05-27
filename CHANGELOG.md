@@ -3,6 +3,9 @@
 All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
+- Add persistent Plex device auth credentials and `--auth-refresh` for renewing JWTs without browser reapproval.
+- Add `--auth-reset` to clear local PIN/device auth state without editing `.env`.
+- Let cache refresh commands and the scheduler recover from rejected Plex tokens through saved device credentials when available.
 - Improve local web UI responsiveness by memoizing cache-backed rankings and comparisons until the SQLite cache changes.
 - Avoid reranking all users when selecting a different user in the web UI.
 - Add CLI-owned cache refresh commands and scheduler loop.

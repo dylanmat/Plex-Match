@@ -106,3 +106,46 @@ def test_refresh_local_library_when_expired(monkeypatch: pytest.MonkeyPatch, tmp
 
     assert stats.refreshed >= 1
     assert store.get_local_items("http://localhost:32400") == [Item("Local", 2021, "movie", None, None, None)]
+
+
+def test_refresh_once_with_auth_recovery_uses_saved_device_credentials(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+
+    def fake_refresh_once(token: str, force=False, cache=None, ttls=None):
+        calls.append(token)
+        if token == "expired-token":
+            raise refresh.PlexAuthError("rejected")
+        return refresh.RefreshStats(checked=1, refreshed=1)
+
+    monkeypatch.setattr(refresh, "refresh_once", fake_refresh_once)
+    monkeypatch.setattr(refresh, "refresh_token_from_device_auth", lambda: "fresh-token")
+
+    token, stats = refresh.refresh_once_with_auth_recovery("expired-token")
+
+    assert token == "fresh-token"
+    assert stats.refreshed == 1
+    assert calls == ["expired-token", "fresh-token"]
+    assert any("--auth-refresh" in message for message in stats.messages)
+
+
+def test_refresh_once_with_auth_recovery_reports_sanitized_refresh_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_refresh_once(token: str, force=False, cache=None, ttls=None):
+        raise refresh.PlexAuthError("bad token")
+
+    def fake_refresh_token():
+        raise refresh.PinAuthServiceError("refresh failed")
+
+    monkeypatch.setattr(refresh, "refresh_once", fake_refresh_once)
+    monkeypatch.setattr(refresh, "refresh_token_from_device_auth", fake_refresh_token)
+
+    token, stats = refresh.refresh_once_with_auth_recovery("expired-token")
+
+    assert token == "expired-token"
+    assert stats.failed == 1
+    joined = "\n".join(stats.messages)
+    assert "refresh failed" in joined
+    assert "expired-token" not in joined

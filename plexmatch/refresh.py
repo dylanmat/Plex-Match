@@ -4,7 +4,8 @@ import os
 import time
 from dataclasses import dataclass, field
 
-from plexmatch.api.graphql import PlexApi, PlexApiError
+from plexmatch.api.auth import PinAuthServiceError, refresh_token_from_device_auth
+from plexmatch.api.graphql import PlexApi, PlexApiError, PlexAuthError
 from plexmatch.api.local import LocalPlexApi, LocalPlexApiError
 from plexmatch.cache import CacheStore
 from plexmatch.models import User
@@ -60,6 +61,37 @@ def refresh_once(
     return stats
 
 
+def refresh_once_with_auth_recovery(
+    token: str,
+    force: bool = False,
+    cache: CacheStore | None = None,
+    ttls: CacheTtls | None = None,
+) -> tuple[str, RefreshStats]:
+    try:
+        return token, refresh_once(token, force=force, cache=cache, ttls=ttls)
+    except PlexAuthError as auth_error:
+        try:
+            refreshed_token = refresh_token_from_device_auth()
+        except PinAuthServiceError as refresh_error:
+            stats = RefreshStats(checked=1, failed=1)
+            stats.messages.append(f"Plex token rejected and device refresh failed. {refresh_error}")
+            stats.messages.append("Run `python -m plexmatch --auth-pin --auth-wait 90`, then update PLEX_TOKEN.")
+            return token, stats
+        try:
+            _, stats = refreshed_token, refresh_once(refreshed_token, force=force, cache=cache, ttls=ttls)
+        except PlexAuthError:
+            stats = RefreshStats(checked=1, failed=1)
+            stats.messages.append("Plex token rejected after device refresh. Run `python -m plexmatch --auth-pin --auth-wait 90`.")
+            return token, stats
+        stats.messages.insert(
+            0,
+            "Plex token refreshed from saved device credentials. Run `python -m plexmatch --auth-refresh` and update PLEX_TOKEN.",
+        )
+        if str(auth_error):
+            stats.messages.append("Original token was rejected by Plex.")
+        return refreshed_token, stats
+
+
 def run_scheduler(
     token: str,
     interval_minutes: float = 15,
@@ -69,7 +101,7 @@ def run_scheduler(
 ) -> None:
     interval_seconds = max(interval_minutes, 0.1) * 60
     while True:
-        stats = refresh_once(token, force=force, cache=cache, ttls=ttls)
+        token, stats = refresh_once_with_auth_recovery(token, force=force, cache=cache, ttls=ttls)
         print(stats.line(), flush=True)
         for message in stats.messages:
             print(message, flush=True)

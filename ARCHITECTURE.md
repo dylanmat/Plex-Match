@@ -24,6 +24,11 @@ Loads Plex token and optional settings from CLI flags, environment variables, an
 
 Suggested module: `plexmatch/config.py`
 
+### Authentication Layer
+Owns Plex PIN/JWK bootstrap, saved device credentials, nonce signing, and token refresh for CLI and scheduler commands.
+
+Suggested module: `plexmatch/api/auth.py`
+
 ### Cache Layer
 Stores normalized users, watchlists, and local library items in project-local SQLite without storing credentials.
 
@@ -105,7 +110,16 @@ Suggested module: `plexmatch/output.py`
 3. Scheduler checks cache metadata and refreshes only expired or missing entries.
 4. Users and watchlists default to 6-hour TTLs; local library defaults to 24 hours.
 5. Failed individual refreshes keep stale data and continue with sanitized warnings.
-6. Web UI observes the updated SQLite file mtime and rebuilds its in-memory snapshot.
+6. If Plex rejects `PLEX_TOKEN`, the scheduler can use saved device credentials to refresh the token in memory and continue.
+7. The scheduler prints guidance to run `--auth-refresh` and update `.env`; it does not write tokens automatically.
+8. Web UI observes the updated SQLite file mtime and rebuilds its in-memory snapshot.
+
+## Authentication Flow
+1. `--auth-pin` creates a temporary PIN session and registers a device public JWK with Plex.
+2. After browser approval, PlexMatch signs a nonce with the matching private key and exchanges the PIN for a Plex JWT.
+3. Successful PIN exchange saves persistent device credentials in `.plexmatch_device_auth.json` and deletes only temporary PIN state.
+4. `--auth-refresh` signs a fresh Plex nonce with the saved private key and exchanges it at `/auth/token` for a new JWT.
+5. `--auth-reset` deletes temporary and persistent local auth state but does not edit `.env`.
 
 ## Plex GraphQL Integration
 - Endpoint target: Plex cloud/community GraphQL API.
@@ -136,4 +150,5 @@ Minimum V1 acceptance checks:
 - Project-local SQLite cache at `.plexmatch/cache.sqlite3` by default, overrideable with `PLEXMATCH_CACHE_PATH`.
 - Local FastAPI web UI reads cache only and does not access Plex tokens.
 - CLI scheduler owns cache refresh and is allowed to read Plex credentials.
+- Persistent Plex device credentials are local CLI/scheduler auth artifacts and are ignored by git.
 - Optional future TMDb, Trakt, Letterboxd, or IMDb import/enrichment.
