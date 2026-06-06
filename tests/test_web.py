@@ -47,7 +47,8 @@ def test_dashboard_loads() -> None:
     assert 'return "Both"' in response.text
     assert "score-pill" in response.text
     assert "supportInfo" in response.text
-    assert "reauthButton" in response.text
+    assert 'id="reauthButton"' in response.text
+    assert "secondary hidden" in response.text
 
 
 def test_missing_cache_returns_setup_guidance(tmp_path: Path) -> None:
@@ -168,6 +169,7 @@ def test_web_auth_start_returns_links_without_token(tmp_path: Path, monkeypatch)
         session_format_version=1,
     )
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(web_module, "plex_token_status", lambda: {"state": "expired", "message": "expired"})
     monkeypatch.setattr(web_module, "load_pin_auth_session", lambda: None)
     monkeypatch.setattr(web_module, "start_pin_auth", lambda: session)
     client = TestClient(create_app(CacheStore(":memory:")))
@@ -178,6 +180,29 @@ def test_web_auth_start_returns_links_without_token(tmp_path: Path, monkeypatch)
     assert data["auth_url"].startswith("https://app.plex.tv/auth#?")
     assert "fallback_auth_url" in data
     assert "token" not in str(data).lower()
+
+
+def test_web_auth_start_rejects_when_token_is_not_expired(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(web_module, "plex_token_status", lambda: {"state": "valid", "message": "valid"})
+    client = TestClient(create_app(CacheStore(":memory:")))
+
+    response = client.post("/api/auth/start")
+
+    assert response.status_code == 409
+    assert "expired" in response.json()["detail"]
+
+
+def test_web_auth_availability_reports_only_expired_tokens_available(monkeypatch) -> None:
+    monkeypatch.setattr(web_module, "plex_token_status", lambda: {"state": "expired", "message": "expired"})
+    client = TestClient(create_app(CacheStore(":memory:")))
+
+    data = client.get("/api/auth/availability").json()
+
+    assert data == {
+        "reauthorization_available": True,
+        "token_status": {"state": "expired", "message": "expired"},
+    }
 
 
 def test_web_auth_status_updates_env_and_refreshes_cache(tmp_path: Path, monkeypatch) -> None:

@@ -40,7 +40,7 @@ The project maintainer owns security decisions until formal ownership is assigne
 - `.plexmatch/` is ignored by git, and `--clear-cache` deletes cached metadata.
 - Cache retention defaults to 6 hours and can be changed with `PLEX_CACHE_TTL_HOURS` or `--cache-ttl-hours`.
 - The web UI reads cache only for comparison data and must not expose `.env`, Plex tokens, or local server tokens.
-- The web UI may initiate Plex PIN/JWK reauthorization from local loopback clients only. It may return short-lived Plex approval URLs and auth/cache status, but it must not return final Plex tokens, device private keys, signed device JWTs, or `.env` contents.
+- The web UI may initiate Plex PIN/JWK reauthorization from local loopback clients only when `PLEX_TOKEN` is an expired JWT. It may return short-lived Plex approval URLs and auth/cache status, but it must not return final Plex tokens, device private keys, signed device JWTs, or `.env` contents.
 - The CLI scheduler may read Plex credentials to refresh cache entries; it must not expose tokens in cache, logs, or web responses.
 - The CLI scheduler may use saved device credentials to recover from an expired Plex token, but it must not write refreshed tokens into `.env`.
 - Successful `--auth-pin` may trigger CLI-owned cache refresh with the fresh in-memory token immediately after updating `.env`.

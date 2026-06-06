@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import ipaddress
+import os
+import time
 from dataclasses import asdict, dataclass, field
+from pathlib import Path
 from threading import Lock
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
+import jwt
 from pydantic import BaseModel
 
 from plexmatch.api.auth import (
@@ -37,6 +41,9 @@ class WebAuthController:
 
     def start(self) -> dict:
         with self._lock:
+            token_status = plex_token_status()
+            if token_status["state"] != "expired":
+                raise HTTPException(status_code=409, detail="Plex reauthorization is available only when PLEX_TOKEN is expired.")
             session = load_pin_auth_session() or start_pin_auth()
             self._last_payload = self._pending_payload(session)
             return dict(self._last_payload)
@@ -59,9 +66,11 @@ class WebAuthController:
                 return dict(self._last_payload)
 
             update_env_plex_token(token)
+            os.environ["PLEX_TOKEN"] = token
             refreshed_token, stats = refresh_once_with_auth_recovery(token, cache=self.cache)
             if refreshed_token != token:
                 update_env_plex_token(refreshed_token)
+                os.environ["PLEX_TOKEN"] = refreshed_token
             self._last_payload = {
                 "state": "complete",
                 "message": "Plex authorization complete. PLEX_TOKEN updated in .env and cache refresh finished.",
@@ -110,6 +119,15 @@ def create_app(cache: CacheStore | None = None) -> FastAPI:
     def auth_status(request: Request) -> dict:
         _require_local_request(request)
         return auth_controller.status()
+
+    @app.get("/api/auth/availability")
+    def auth_availability(request: Request) -> dict:
+        _require_local_request(request)
+        status = plex_token_status()
+        return {
+            "reauthorization_available": status["state"] == "expired",
+            "token_status": status,
+        }
 
     @app.get("/api/users/top")
     def top_users(media_type: str = "all") -> dict:
@@ -178,6 +196,34 @@ def _require_local_request(request: Request) -> None:
         if host.lower() == "localhost":
             return
     raise HTTPException(status_code=403, detail="Plex authorization can only be initiated from a local browser.")
+
+
+def plex_token_status() -> dict:
+    token = _current_plex_token()
+    if not token:
+        return {"state": "missing", "message": "PLEX_TOKEN is not configured."}
+    try:
+        payload = jwt.decode(token, options={"verify_signature": False, "verify_exp": False})
+    except jwt.PyJWTError:
+        return {"state": "unknown", "message": "PLEX_TOKEN is not a decodable JWT."}
+    exp = payload.get("exp")
+    if not isinstance(exp, int | float):
+        return {"state": "unknown", "message": "PLEX_TOKEN does not include a JWT expiration."}
+    if exp <= time.time():
+        return {"state": "expired", "message": "PLEX_TOKEN is expired."}
+    return {"state": "valid", "message": "PLEX_TOKEN is valid."}
+
+
+def _current_plex_token(env_path: Path = Path(".env")) -> str:
+    token = (os.getenv("PLEX_TOKEN") or "").strip()
+    if token:
+        return token
+    if not env_path.exists():
+        return ""
+    for line in env_path.read_text().splitlines():
+        if line.startswith("PLEX_TOKEN="):
+            return line.split("=", 1)[1].strip()
+    return ""
 
 
 APP_HTML = """
@@ -260,6 +306,7 @@ APP_HTML = """
       cursor: not-allowed;
       opacity: 0.65;
     }
+    .hidden { display: none !important; }
     .header-actions {
       display: flex;
       align-items: center;
@@ -492,7 +539,7 @@ APP_HTML = """
   <header>
     <h1>PlexMatch</h1>
     <div class="header-actions">
-      <button class="secondary" id="reauthButton">Reauthorize</button>
+      <button class="secondary hidden" id="reauthButton">Reauthorize</button>
       <div class="sub">self comparisons from cache</div>
     </div>
   </header>
@@ -675,6 +722,13 @@ APP_HTML = """
       reauthButtonEl.disabled = true;
       statusEl.innerHTML = `<div class="status"><div class="loading"><span class="spinner" aria-hidden="true"></span><span>Starting Plex authorization...</span></div></div>`;
       const response = await fetch("/api/auth/start", {method: "POST"});
+      if (!response.ok) {
+        reauthButtonEl.disabled = false;
+        const error = await response.json();
+        statusEl.innerHTML = `<div class="status warn"><div class="title">${error.detail || "Plex reauthorization is not available."}</div></div>`;
+        await loadAuthAvailability();
+        return;
+      }
       const payload = await response.json();
       showAuthStatus(payload);
       if (authPollTimer) clearInterval(authPollTimer);
@@ -691,8 +745,16 @@ APP_HTML = """
         reauthButtonEl.disabled = false;
       }
       if (payload.state === "complete") {
+        await loadAuthAvailability();
         await loadUsers();
       }
+    }
+
+    async function loadAuthAvailability() {
+      const response = await fetch("/api/auth/availability");
+      if (!response.ok) return;
+      const payload = await response.json();
+      reauthButtonEl.classList.toggle("hidden", !payload.reauthorization_available);
     }
 
     mediaTypeEl.onchange = () => loadUsers();
@@ -701,6 +763,7 @@ APP_HTML = """
     reauthButtonEl.onclick = startReauth;
     document.getElementById("randomLow").onclick = () => randomPick("low");
     document.getElementById("randomHigh").onclick = () => randomPick("high");
+    loadAuthAvailability();
     loadUsers();
   </script>
 </body>

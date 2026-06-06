@@ -3,7 +3,7 @@
 All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
-- Add local web UI reauthorization that shows Plex approval links, updates `.env` server-side, and refreshes cache without returning token material to the browser.
+- Add expired-token-only local web UI reauthorization that shows Plex approval links, updates `.env` server-side, and refreshes cache without returning token material to the browser.
 - Change successful `--auth-pin` completion to update `PLEX_TOKEN` in `.env` without printing the token, then run a one-shot cache refresh.
 - Fix `--auth-reset --auth-pin --auth-wait` so a newly created PIN session is polled in the same command after browser approval.
 - Generate a unique Plex client identifier for new PIN/JWK auth sessions to avoid collisions with existing authorized devices when local credentials are missing.

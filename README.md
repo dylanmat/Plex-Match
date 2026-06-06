@@ -108,7 +108,7 @@ python -m plexmatch --web
 
 Open `http://127.0.0.1:8000`. The default view compares `self` against cached users, ranks users by total scored matches, and supports media filters plus low-confidence and high-confidence random picks. Web results are memoized in memory and refresh automatically when the SQLite cache file changes. If cache entries expire, stale results remain visible with a warning while the CLI scheduler refreshes them. Use `--web-host` and `--web-port` when running in Docker or another local environment.
 
-The local web UI includes a `Reauthorize` action for loopback browser sessions. It opens a Plex approval URL, then the local server completes PIN/JWK auth, updates `PLEX_TOKEN` in `.env`, and refreshes cache without returning the final token to the browser.
+When `PLEX_TOKEN` is an expired JWT, the local web UI shows a `Reauthorize` action for loopback browser sessions. It opens a Plex approval URL, then the local server completes PIN/JWK auth, updates `PLEX_TOKEN` in `.env`, and refreshes cache without returning the final token to the browser.
 
 
 ## Authentication (Plex JWT Recommended)

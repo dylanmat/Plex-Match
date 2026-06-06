@@ -103,7 +103,7 @@ Suggested module: `plexmatch/output.py`
 8. The frontend fetches ranked users on initial load or media-type changes; selecting a user only fetches that comparison.
 9. Expired cache entries are shown as stale data instead of being deleted.
 10. Missing cache state returns setup guidance instead of calling Plex APIs.
-11. A local browser may initiate Plex PIN/JWK reauthorization; the web response contains only approval URLs and coarse auth/cache status.
+11. A local browser may initiate Plex PIN/JWK reauthorization only when `PLEX_TOKEN` is an expired JWT; the web response contains only approval URLs and coarse auth/cache status.
 12. The server-side auth controller performs PIN exchange, `.env` token update, and one-shot cache refresh without returning token material to the browser.
 
 ## Cache Refresh Flow
@@ -152,7 +152,7 @@ Minimum V1 acceptance checks:
 - Optional local Plex server availability checks through `PLEX_SERVER_URL` and `PLEX_SERVER_TOKEN`.
 - Project-local SQLite cache at `.plexmatch/cache.sqlite3` by default, overrideable with `PLEXMATCH_CACHE_PATH`.
 - Local FastAPI web UI reads cache only for comparison data and does not expose Plex tokens.
-- Local-only web reauthorization may update `.env` and refresh cache from server-side auth code, but final tokens and device secrets must not be returned to browser clients.
+- Local-only web reauthorization may update `.env` and refresh cache from server-side auth code when `PLEX_TOKEN` is expired, but final tokens and device secrets must not be returned to browser clients.
 - CLI scheduler owns cache refresh and is allowed to read Plex credentials.
 - Persistent Plex device credentials are local CLI/scheduler auth artifacts and are ignored by git.
 - Optional future TMDb, Trakt, Letterboxd, or IMDb import/enrichment.
