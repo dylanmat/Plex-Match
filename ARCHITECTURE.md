@@ -15,7 +15,7 @@ Responsible for argument parsing, environment loading, command routing, user-fac
 Suggested module: `plexmatch/cli.py`
 
 ### Web UI Layer
-Provides a local FastAPI interface backed only by cached data.
+Provides a local FastAPI interface backed by cached comparison data and a local-only reauthorization control surface.
 
 Suggested module: `plexmatch/web.py`
 
@@ -40,7 +40,7 @@ Builds cache-backed user rankings, comparisons, and random picks for both CLI-ad
 Suggested module: `plexmatch/service.py`
 
 ### Refresh Scheduler Layer
-Refreshes expired cache entries from the CLI side while preserving the web UI token boundary.
+Refreshes expired cache entries from the CLI side while preserving the web UI token disclosure boundary.
 
 Suggested module: `plexmatch/refresh.py`
 
@@ -103,6 +103,8 @@ Suggested module: `plexmatch/output.py`
 8. The frontend fetches ranked users on initial load or media-type changes; selecting a user only fetches that comparison.
 9. Expired cache entries are shown as stale data instead of being deleted.
 10. Missing cache state returns setup guidance instead of calling Plex APIs.
+11. A local browser may initiate Plex PIN/JWK reauthorization; the web response contains only approval URLs and coarse auth/cache status.
+12. The server-side auth controller performs PIN exchange, `.env` token update, and one-shot cache refresh without returning token material to the browser.
 
 ## Cache Refresh Flow
 1. User runs `python -m plexmatch --refresh-cache` or keeps `--cache-scheduler` running.
@@ -149,7 +151,8 @@ Minimum V1 acceptance checks:
 - Plex token loaded from local environment only.
 - Optional local Plex server availability checks through `PLEX_SERVER_URL` and `PLEX_SERVER_TOKEN`.
 - Project-local SQLite cache at `.plexmatch/cache.sqlite3` by default, overrideable with `PLEXMATCH_CACHE_PATH`.
-- Local FastAPI web UI reads cache only and does not access Plex tokens.
+- Local FastAPI web UI reads cache only for comparison data and does not expose Plex tokens.
+- Local-only web reauthorization may update `.env` and refresh cache from server-side auth code, but final tokens and device secrets must not be returned to browser clients.
 - CLI scheduler owns cache refresh and is allowed to read Plex credentials.
 - Persistent Plex device credentials are local CLI/scheduler auth artifacts and are ignored by git.
 - Optional future TMDb, Trakt, Letterboxd, or IMDb import/enrichment.

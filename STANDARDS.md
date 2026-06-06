@@ -21,8 +21,9 @@
 
 ## Web UI Standards
 - Bind local web UI to `127.0.0.1` by default.
-- Keep web data access cache-only unless a future decision explicitly changes that.
-- Show cache setup guidance instead of triggering Plex API calls from web handlers.
+- Keep comparison data access cache-only unless a future decision explicitly changes that.
+- Permit web-initiated reauthorization only from loopback clients, and never return Plex tokens, signed device JWTs, device private keys, or `.env` contents in web responses.
+- Show cache setup guidance instead of triggering Plex API calls from comparison web handlers; the local reauthorization handler is the only accepted exception.
 - Keep controls ergonomic for repeated movie-night use: ranked users, filters, and random pick actions should be immediately visible.
 - Avoid full user reranking on simple UI interactions such as selecting a user or making a random pick.
 - Show stale cache state clearly when data is expired but still available.

@@ -1,10 +1,15 @@
 from pathlib import Path
+from types import SimpleNamespace
 
+import pytest
 from fastapi.testclient import TestClient
+from fastapi import HTTPException
 
 from plexmatch import web as web_module
 from plexmatch.cache import CacheStore
 from plexmatch.models import Item, User
+from plexmatch.refresh import RefreshStats
+from plexmatch.api.auth import PinAuthSession
 from plexmatch.web import create_app
 
 
@@ -42,6 +47,7 @@ def test_dashboard_loads() -> None:
     assert 'return "Both"' in response.text
     assert "score-pill" in response.text
     assert "supportInfo" in response.text
+    assert "reauthButton" in response.text
 
 
 def test_missing_cache_returns_setup_guidance(tmp_path: Path) -> None:
@@ -150,3 +156,64 @@ def test_random_endpoint_reuses_cached_comparison_data(tmp_path: Path, monkeypat
     client.post("/api/random", json={"user_id": "friend-a", "mode": "high", "media_type": "movie"})
 
     assert calls["compare"] == 2
+
+
+def test_web_auth_start_returns_links_without_token(tmp_path: Path, monkeypatch) -> None:
+    session = PinAuthSession(
+        pin_id=1,
+        code="pending-code",
+        client_identifier="plexmatch-cli-generated",
+        private_key_b64="",
+        key_id="key-1",
+        session_format_version=1,
+    )
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(web_module, "load_pin_auth_session", lambda: None)
+    monkeypatch.setattr(web_module, "start_pin_auth", lambda: session)
+    client = TestClient(create_app(CacheStore(":memory:")))
+
+    data = client.post("/api/auth/start").json()
+
+    assert data["state"] == "pending"
+    assert data["auth_url"].startswith("https://app.plex.tv/auth#?")
+    assert "fallback_auth_url" in data
+    assert "token" not in str(data).lower()
+
+
+def test_web_auth_status_updates_env_and_refreshes_cache(tmp_path: Path, monkeypatch) -> None:
+    session = PinAuthSession(
+        pin_id=1,
+        code="pending-code",
+        client_identifier="plexmatch-cli-generated",
+        private_key_b64="",
+        key_id="key-1",
+        session_format_version=1,
+    )
+    calls: dict[str, str] = {}
+
+    def fake_refresh(token: str, cache=None):
+        calls["token"] = token
+        return token, RefreshStats(checked=2, refreshed=1, skipped=1)
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(web_module, "load_pin_auth_session", lambda: session)
+    monkeypatch.setattr(web_module, "exchange_pin_for_token", lambda pin_session: "fresh-token")
+    monkeypatch.setattr(web_module, "refresh_once_with_auth_recovery", fake_refresh)
+    client = TestClient(create_app(CacheStore(":memory:")))
+
+    data = client.get("/api/auth/status").json()
+
+    assert data["state"] == "complete"
+    assert data["cache"] == {"checked": 2, "refreshed": 1, "skipped": 1, "failed": 0, "messages": []}
+    assert calls["token"] == "fresh-token"
+    assert (tmp_path / ".env").read_text() == "PLEX_TOKEN=fresh-token\n"
+    assert "fresh-token" not in str(data)
+
+
+def test_web_auth_local_guard_rejects_non_loopback_client() -> None:
+    request = SimpleNamespace(client=SimpleNamespace(host="203.0.113.10"))
+
+    with pytest.raises(HTTPException) as exc_info:
+        web_module._require_local_request(request)
+
+    assert exc_info.value.status_code == 403

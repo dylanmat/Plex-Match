@@ -96,3 +96,12 @@ Use this format for each new decision:
 - Consequences: Initial authorization and reauthorization become one CLI workflow, and the local web UI cache is refreshed immediately after token bootstrap. The CLI must preserve existing `.env` content, avoid logging the token, and keep scheduler/web handlers from writing credentials.
 - Alternatives Considered: Keep manual token copying, add a separate `--write-env` flag, make `--auth-refresh` write `.env`, or let the web UI trigger token refresh.
 - Supersedes/Superseded By: None
+
+### ADR-010 - Permit Local Web-Initiated Reauthorization
+- Date: 2026-06-06
+- Status: Accepted
+- Context: The cache-only web UI can become stale when Plex JWTs expire, and users may be operating from the local browser rather than an active terminal. Reauthorization should be ergonomic without moving token material into browser-visible responses.
+- Decision: The local web UI may initiate a Plex PIN/JWK reauthorization flow from loopback clients only. Web responses may expose short-lived Plex approval URLs and coarse auth/cache status, but the server-side auth controller owns PIN exchange, `.env` token update, device credential persistence, and one-shot cache refresh. Tokens, device private keys, signed device JWTs, and `.env` contents must never be returned to the browser.
+- Consequences: Plex users can reauthorize from the local UI and continue cache refresh operations without copying tokens. The web app now has a narrow local-only auth control surface that requires tests for local access enforcement, token non-disclosure, `.env` update behavior, and cache refresh triggering.
+- Alternatives Considered: Keep all reauthorization terminal-only, show only terminal instructions in the web UI, make the browser receive the final Plex token, or allow web-triggered Plex API refresh from general network clients.
+- Supersedes/Superseded By: None

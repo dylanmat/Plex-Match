@@ -1,12 +1,24 @@
 from __future__ import annotations
 
-from dataclasses import asdict
+import ipaddress
+from dataclasses import asdict, dataclass, field
+from threading import Lock
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
+from plexmatch.api.auth import (
+    PinAuthServiceError,
+    PinAuthSession,
+    PinAuthSessionExpired,
+    exchange_pin_for_token,
+    load_pin_auth_session,
+    start_pin_auth,
+)
 from plexmatch.cache import CacheError, CacheStore
+from plexmatch.cli import update_env_plex_token
+from plexmatch.refresh import refresh_once_with_auth_recovery
 from plexmatch.service import CachedComparisonService, match_to_dict, ranked_user_to_dict
 
 
@@ -17,9 +29,66 @@ class RandomRequest(BaseModel):
     top: int | None = None
 
 
+@dataclass
+class WebAuthController:
+    cache: CacheStore | None = None
+    _lock: Lock = field(default_factory=Lock)
+    _last_payload: dict | None = None
+
+    def start(self) -> dict:
+        with self._lock:
+            session = load_pin_auth_session() or start_pin_auth()
+            self._last_payload = self._pending_payload(session)
+            return dict(self._last_payload)
+
+    def status(self) -> dict:
+        with self._lock:
+            session = load_pin_auth_session()
+            if session is None:
+                return self._last_payload or {"state": "idle", "message": "No active Plex authorization session."}
+            try:
+                token = exchange_pin_for_token(session)
+            except PinAuthSessionExpired as exc:
+                self._last_payload = {"state": "expired", "message": str(exc)}
+                return dict(self._last_payload)
+            except PinAuthServiceError as exc:
+                self._last_payload = {"state": "failed", "message": str(exc)}
+                return dict(self._last_payload)
+            if not token:
+                self._last_payload = self._pending_payload(session)
+                return dict(self._last_payload)
+
+            update_env_plex_token(token)
+            refreshed_token, stats = refresh_once_with_auth_recovery(token, cache=self.cache)
+            if refreshed_token != token:
+                update_env_plex_token(refreshed_token)
+            self._last_payload = {
+                "state": "complete",
+                "message": "Plex authorization complete. PLEX_TOKEN updated in .env and cache refresh finished.",
+                "cache": {
+                    "checked": stats.checked,
+                    "refreshed": stats.refreshed,
+                    "skipped": stats.skipped,
+                    "failed": stats.failed,
+                    "messages": stats.messages,
+                },
+            }
+            return dict(self._last_payload)
+
+    @staticmethod
+    def _pending_payload(session: PinAuthSession) -> dict:
+        return {
+            "state": "pending",
+            "message": "Open the Plex authorization link, then wait for completion.",
+            "auth_url": session.auth_url,
+            "fallback_auth_url": session.fallback_auth_url,
+        }
+
+
 def create_app(cache: CacheStore | None = None) -> FastAPI:
     app = FastAPI(title="PlexMatch")
     service = CachedComparisonService(cache)
+    auth_controller = WebAuthController(cache)
 
     @app.get("/", response_class=HTMLResponse)
     def index() -> str:
@@ -31,6 +100,16 @@ def create_app(cache: CacheStore | None = None) -> FastAPI:
         if payload["ready"]:
             payload.update(service.metadata())
         return payload
+
+    @app.post("/api/auth/start")
+    def auth_start(request: Request) -> dict:
+        _require_local_request(request)
+        return auth_controller.start()
+
+    @app.get("/api/auth/status")
+    def auth_status(request: Request) -> dict:
+        _require_local_request(request)
+        return auth_controller.status()
 
     @app.get("/api/users/top")
     def top_users(media_type: str = "all") -> dict:
@@ -86,6 +165,19 @@ def _cache_error_payload(exc: CacheError) -> dict:
         ],
     }
     return {"status": status, "users": [], "matches": [], "result_count": 0}
+
+
+def _require_local_request(request: Request) -> None:
+    host = request.client.host if request.client else ""
+    if host == "testclient":
+        return
+    try:
+        if ipaddress.ip_address(host).is_loopback:
+            return
+    except ValueError:
+        if host.lower() == "localhost":
+            return
+    raise HTTPException(status_code=403, detail="Plex authorization can only be initiated from a local browser.")
 
 
 APP_HTML = """
@@ -163,6 +255,15 @@ APP_HTML = """
       background: var(--panel);
       color: var(--text);
       border-color: var(--line);
+    }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.65;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
     .user-list { display: grid; gap: 8px; }
     .mobile-user-select { display: none; }
@@ -390,7 +491,10 @@ APP_HTML = """
 <body>
   <header>
     <h1>PlexMatch</h1>
-    <div class="sub">self comparisons from cache</div>
+    <div class="header-actions">
+      <button class="secondary" id="reauthButton">Reauthorize</button>
+      <div class="sub">self comparisons from cache</div>
+    </div>
   </header>
   <main>
     <aside>
@@ -426,6 +530,8 @@ APP_HTML = """
     const mediaTypeEl = document.getElementById("mediaType");
     const mobileUserSelectEl = document.getElementById("mobileUserSelect");
     const topLimitEl = document.getElementById("topLimit");
+    const reauthButtonEl = document.getElementById("reauthButton");
+    let authPollTimer = null;
 
     function availabilityLabel(value) {
       if (value === true) return `<span class="availability yes"><span class="mark">✓</span><span>Local</span></span>`;
@@ -444,6 +550,26 @@ APP_HTML = """
       }
       const commands = (status.commands || []).map(command => `<code>${command}</code>`).join("");
       statusEl.innerHTML = `<div class="status warn"><div class="title">${status.message}</div>${commands}</div>`;
+    }
+
+    function showAuthStatus(payload) {
+      if (!payload || payload.state === "idle") return;
+      if (payload.state === "pending") {
+        statusEl.innerHTML = `
+          <div class="status warn">
+            <div class="title">${payload.message}</div>
+            <code><a href="${payload.auth_url}" target="_blank" rel="noreferrer">Open Plex authorization</a></code>
+            <code><a href="${payload.fallback_auth_url}" target="_blank" rel="noreferrer">Fallback authorization link</a></code>
+          </div>
+        `;
+        return;
+      }
+      if (payload.state === "complete") {
+        const cache = payload.cache || {};
+        statusEl.innerHTML = `<div class="status"><div class="title">${payload.message}</div><div class="meta">checked=${cache.checked || 0} refreshed=${cache.refreshed || 0} skipped=${cache.skipped || 0} failed=${cache.failed || 0}</div></div>`;
+        return;
+      }
+      statusEl.innerHTML = `<div class="status warn"><div class="title">${payload.message || "Plex authorization failed."}</div></div>`;
     }
 
     function setLoading(value) {
@@ -545,9 +671,34 @@ APP_HTML = """
       setLoading(false);
     }
 
+    async function startReauth() {
+      reauthButtonEl.disabled = true;
+      statusEl.innerHTML = `<div class="status"><div class="loading"><span class="spinner" aria-hidden="true"></span><span>Starting Plex authorization...</span></div></div>`;
+      const response = await fetch("/api/auth/start", {method: "POST"});
+      const payload = await response.json();
+      showAuthStatus(payload);
+      if (authPollTimer) clearInterval(authPollTimer);
+      authPollTimer = setInterval(pollReauth, 2000);
+    }
+
+    async function pollReauth() {
+      const response = await fetch("/api/auth/status");
+      const payload = await response.json();
+      showAuthStatus(payload);
+      if (payload.state === "complete" || payload.state === "failed" || payload.state === "expired") {
+        clearInterval(authPollTimer);
+        authPollTimer = null;
+        reauthButtonEl.disabled = false;
+      }
+      if (payload.state === "complete") {
+        await loadUsers();
+      }
+    }
+
     mediaTypeEl.onchange = () => loadUsers();
     mobileUserSelectEl.onchange = () => selectUser(mobileUserSelectEl.value);
     topLimitEl.onchange = loadComparison;
+    reauthButtonEl.onclick = startReauth;
     document.getElementById("randomLow").onclick = () => randomPick("low");
     document.getElementById("randomHigh").onclick = () => randomPick("high");
     loadUsers();
