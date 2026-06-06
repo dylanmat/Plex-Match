@@ -3,6 +3,7 @@ import importlib
 import os
 import sys
 import time
+from pathlib import Path
 
 from plexmatch.cache import CacheError, CacheStore
 from plexmatch.matching import candidates, support_counts
@@ -61,7 +62,7 @@ def main() -> int:
     p.add_argument("--top", type=int)
     p.add_argument("--type", choices=["all", "movie", "show", "movies", "shows"], default="all")
     p.add_argument("--format", choices=["table", "json"], default="table")
-    p.add_argument("--auth-pin", action="store_true", help="Start/poll Plex PIN+JWK auth flow and print JWT.")
+    p.add_argument("--auth-pin", action="store_true", help="Start/poll Plex PIN+JWK auth flow, update .env, and refresh cache.")
     p.add_argument("--auth-refresh", action="store_true", help="Refresh a Plex JWT from saved device credentials and print it.")
     p.add_argument("--auth-reset", action="store_true", help="Delete local Plex PIN and device auth state, then exit unless --auth-pin is also used.")
     p.add_argument("--client-id", help="Optional Plex client identifier for PIN+JWK auth. Defaults to a generated per-device ID.")
@@ -130,6 +131,7 @@ def main() -> int:
             refresh_token_from_device_auth,
             start_pin_auth,
         )
+        from plexmatch.refresh import refresh_once_with_auth_recovery
 
         if args.auth_reset:
             clear_auth_state()
@@ -207,7 +209,12 @@ def main() -> int:
                     "PIN is not approved yet. Finish browser auth and run again. "
                     f"Auth URL: {session.auth_url}{manual_hint}"
                 )
-        print(token)
+        update_env_plex_token(token)
+        print("PLEX_TOKEN updated in .env.")
+        _, stats = refresh_once_with_auth_recovery(token)
+        print(stats.line())
+        for message in stats.messages:
+            print(message)
         return 0
 
     cache_ttl_seconds = parse_cache_ttl_seconds(args.cache_ttl_hours, p)
@@ -273,6 +280,28 @@ def parse_cache_ttl_seconds(arg_value: float | None, parser: argparse.ArgumentPa
     if hours <= 0:
         parser.error("--cache-ttl-hours/PLEX_CACHE_TTL_HOURS must be a positive number.")
     return int(hours * 3600)
+
+
+def update_env_plex_token(token: str, env_path: Path = Path(".env")) -> None:
+    line = f"PLEX_TOKEN={token}"
+    if not env_path.exists():
+        env_path.write_text(f"{line}\n")
+        return
+
+    raw = env_path.read_text()
+    lines = raw.splitlines(keepends=True)
+    updated = False
+    for index, existing in enumerate(lines):
+        content = existing.rstrip("\r\n")
+        newline = existing[len(content):]
+        if content.startswith("PLEX_TOKEN="):
+            lines[index] = f"{line}{newline or os.linesep}"
+            updated = True
+            break
+    if not updated:
+        separator = "" if raw.endswith(("\n", "\r")) or raw == "" else os.linesep
+        lines.append(f"{separator}{line}{os.linesep}")
+    env_path.write_text("".join(lines))
 
 
 def cached_users(api, cache: CacheStore | None, namespace: str, ttl_seconds: int) -> list[User]:

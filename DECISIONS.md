@@ -87,3 +87,12 @@ Use this format for each new decision:
 - Consequences: Token renewal no longer requires browser approval while the saved device credentials and Plex authorized device remain valid. The device credential file is restricted local auth material and must stay ignored by git.
 - Alternatives Considered: Always rerun PIN auth, write refreshed tokens into `.env` automatically, or make the web UI perform token refresh.
 - Supersedes/Superseded By: None
+
+### ADR-009 - Let PIN Auth Update Local Token and Refresh Cache
+- Date: 2026-06-06
+- Status: Accepted
+- Context: Manual token copy/paste after PIN auth is error-prone and delays cache refresh after a successful browser approval. `.env` is already an approved project-local credential store, while the web UI remains cache-only and token-free.
+- Decision: A successful `--auth-pin` exchange updates `PLEX_TOKEN` in `.env` without printing the token, then starts a one-shot CLI cache refresh using the fresh in-memory token. `--auth-refresh` remains the manual renewal path that prints the token for explicit user update.
+- Consequences: Initial authorization and reauthorization become one CLI workflow, and the local web UI cache is refreshed immediately after token bootstrap. The CLI must preserve existing `.env` content, avoid logging the token, and keep scheduler/web handlers from writing credentials.
+- Alternatives Considered: Keep manual token copying, add a separate `--write-env` flag, make `--auth-refresh` write `.env`, or let the web UI trigger token refresh.
+- Supersedes/Superseded By: None

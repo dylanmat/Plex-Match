@@ -11,7 +11,8 @@ The project maintainer owns security decisions until formal ownership is assigne
 - Never commit `.plexmatch_pin_auth.json`, `.plexmatch_device_auth.json`, or other local auth artifacts.
 - Provide `.env.example` with placeholder values only.
 - Never print tokens in normal output, debug output, logs, exceptions, screenshots, or test fixtures.
-- The only exception is auth commands printing the final refreshed Plex token directly to the terminal for the user to copy into `.env`.
+- The only print exception is `--auth-refresh`, which prints the final refreshed Plex token directly to the terminal for the user to copy into `.env`.
+- `--auth-pin` may update `PLEX_TOKEN` in the project-local `.env` file after successful browser approval, but it must not print the token.
 - Never print device private keys or signed device JWTs.
 - Do not request or store Plex passwords.
 - Prefer Plex tokens with the minimum practical access.
@@ -41,6 +42,7 @@ The project maintainer owns security decisions until formal ownership is assigne
 - The web UI reads cache only and must not read `.env`, Plex tokens, or local server tokens.
 - The CLI scheduler may read Plex credentials to refresh cache entries; it must not expose tokens in cache, logs, or web responses.
 - The CLI scheduler may use saved device credentials to recover from an expired Plex token, but it must not write refreshed tokens into `.env`.
+- Successful `--auth-pin` may trigger CLI-owned cache refresh with the fresh in-memory token immediately after updating `.env`.
 - Expired cache entries may remain visible as stale internal metadata until refreshed or cleared.
 - `.plexmatch_device_auth.json` is restricted local credential material. If the matching Plex authorized device is deleted or this file is lost, run the PIN flow again.
 

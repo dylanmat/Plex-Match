@@ -117,9 +117,10 @@ Suggested module: `plexmatch/output.py`
 ## Authentication Flow
 1. `--auth-pin` creates a temporary PIN session with a generated Plex client identifier unless `--client-id` is provided, then registers a device public JWK with Plex.
 2. After browser approval, PlexMatch signs a nonce with the matching private key and exchanges the PIN for a Plex JWT.
-3. Successful PIN exchange saves persistent device credentials in `.plexmatch_device_auth.json` and deletes only temporary PIN state.
-4. `--auth-refresh` signs a fresh Plex nonce with the saved private key and exchanges it at `/auth/token` for a new JWT using Plex's current `jwt` request body.
-5. `--auth-reset` deletes temporary and persistent local auth state but does not edit `.env`.
+3. Successful PIN exchange saves persistent device credentials in `.plexmatch_device_auth.json`, updates `PLEX_TOKEN` in `.env` without printing the token, and deletes only temporary PIN state.
+4. After successful PIN exchange, the CLI starts a one-shot cache refresh with the fresh in-memory token.
+5. `--auth-refresh` signs a fresh Plex nonce with the saved private key and exchanges it at `/auth/token` for a new JWT using Plex's current `jwt` request body.
+6. `--auth-reset` deletes temporary and persistent local auth state but does not edit `.env`.
 
 ## Plex GraphQL Integration
 - Endpoint target: Plex cloud/community GraphQL API.

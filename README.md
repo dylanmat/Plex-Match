@@ -112,7 +112,7 @@ Open `http://127.0.0.1:8000`. The default view compares `self` against cached us
 ## Authentication (Plex JWT Recommended)
 - Plex now recommends JWT auth with short-lived (7 day) tokens and per-device key registration.
 - PlexMatch currently accepts a token via `--token` or `PLEX_TOKEN`; JWT tokens work in the same `X-Plex-Token` header path as legacy tokens.
-- First setup: run `python -m plexmatch --auth-pin --auth-wait 90`, approve the browser prompt, then save the printed JWT into `PLEX_TOKEN` or pass it with `--token`.
+- First setup: run `python -m plexmatch --auth-pin --auth-wait 90`, approve the browser prompt, then PlexMatch updates `PLEX_TOKEN` in `.env` and refreshes the local cache.
 - If you started without `--auth-wait`, approve the browser prompt and run `python -m plexmatch --auth-pin` again to finish the PIN exchange. `--auth-refresh` works only after the PIN exchange has saved device credentials.
 - A successful PIN exchange saves `.plexmatch_device_auth.json`, which contains the device private key needed to reuse that Plex authorized device.
 - Token renewal: run `python -m plexmatch --auth-refresh`, then replace `PLEX_TOKEN` in `.env` with the printed JWT.
@@ -123,7 +123,7 @@ Open `http://127.0.0.1:8000`. The default view compares `self` against cached us
 
 ## Security Notes
 - Never commit tokens or `.env` files.
-- Plex tokens are never printed by normal comparison/cache/web output; auth commands print the final token intentionally for `.env` update.
+- Plex tokens are never printed by normal comparison/cache/web output. `--auth-pin` writes the final token to `.env` without printing it; `--auth-refresh` prints the final token intentionally for manual `.env` update.
 - Errors are written without secrets.
 
 ## Known API Limitations

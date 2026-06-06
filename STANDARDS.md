@@ -14,7 +14,8 @@
 - Support `--help` for all commands/options.
 - Support `.env` loading without requiring it.
 - Do not echo secrets.
-- Auth commands may print only the final Plex token intentionally requested by the user.
+- `--auth-pin` should update `PLEX_TOKEN` in `.env` without printing the token, then refresh the cache.
+- Auth commands may print a Plex token only when the command is explicitly a manual token renewal path such as `--auth-refresh`.
 - Keep saved device auth credentials separate from temporary PIN session state.
 - Provide useful error messages for invalid tokens, inaccessible users, empty watchlists, and no overlaps.
 
