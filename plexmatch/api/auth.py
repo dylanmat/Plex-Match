@@ -4,6 +4,7 @@ import base64
 import hashlib
 import json
 import time
+import uuid
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from urllib.parse import urlencode
@@ -20,6 +21,7 @@ SESSION_FORMAT_VERSION = 2
 DEVICE_AUTH_FORMAT_VERSION = 1
 CLIENT_PRODUCT = "PlexMatch"
 CLIENT_VERSION = "0.3.0"
+DEFAULT_CLIENT_ID_PREFIX = "plexmatch-cli"
 AUTH_SCOPES = ("username", "email", "friendly_name", "restricted", "anonymous", "joinedAt")
 
 
@@ -118,7 +120,12 @@ class DeviceAuthCredentials:
         return Ed25519PrivateKey.from_private_bytes(base64.b64decode(self.private_key_b64))
 
 
-def start_pin_auth(client_identifier: str = "plexmatch-cli") -> PinAuthSession:
+def new_client_identifier() -> str:
+    return f"{DEFAULT_CLIENT_ID_PREFIX}-{uuid.uuid4().hex}"
+
+
+def start_pin_auth(client_identifier: str | None = None) -> PinAuthSession:
+    client_identifier = client_identifier or new_client_identifier()
     private_key = Ed25519PrivateKey.generate()
     private = private_key.private_bytes(serialization.Encoding.Raw, serialization.PrivateFormat.Raw, serialization.NoEncryption())
     public = private_key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
@@ -229,12 +236,12 @@ def refresh_token_from_device_auth(credentials: DeviceAuthCredentials | None = N
 
     headers = _headers(credentials.client_identifier, content_type=True)
     device_jwt = _signed_device_jwt(credentials, "Plex token refresh")
-    response = httpx.post(f"{CLIENTS_API}/auth/token", json={"deviceJWT": device_jwt}, headers=headers, timeout=30)
+    response = httpx.post(f"{CLIENTS_API}/auth/token", json={"jwt": device_jwt}, headers=headers, timeout=30)
     if response.status_code in {400, 404, 405}:
-        response = httpx.get(
+        response = httpx.post(
             f"{CLIENTS_API}/auth/token",
-            params={"deviceJWT": device_jwt},
-            headers=_headers(credentials.client_identifier),
+            json={"deviceJWT": device_jwt},
+            headers=headers,
             timeout=30,
         )
     try:
@@ -243,7 +250,7 @@ def refresh_token_from_device_auth(credentials: DeviceAuthCredentials | None = N
         status = exc.response.status_code
         raise PinAuthServiceError(f"Plex token refresh failed with HTTP {status}.") from None
     data = response.json()
-    token = data.get("authToken") or data.get("token")
+    token = data.get("auth_token") or data.get("authToken") or data.get("token")
     if not token:
         raise PinAuthServiceError("Plex token refresh response did not include a token.")
     return str(token)

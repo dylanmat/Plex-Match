@@ -112,11 +112,13 @@ Open `http://127.0.0.1:8000`. The default view compares `self` against cached us
 ## Authentication (Plex JWT Recommended)
 - Plex now recommends JWT auth with short-lived (7 day) tokens and per-device key registration.
 - PlexMatch currently accepts a token via `--token` or `PLEX_TOKEN`; JWT tokens work in the same `X-Plex-Token` header path as legacy tokens.
-- First setup: run `python -m plexmatch --auth-pin --auth-wait 90`, then save the printed JWT into `PLEX_TOKEN` or pass it with `--token`.
+- First setup: run `python -m plexmatch --auth-pin --auth-wait 90`, approve the browser prompt, then save the printed JWT into `PLEX_TOKEN` or pass it with `--token`.
+- If you started without `--auth-wait`, approve the browser prompt and run `python -m plexmatch --auth-pin` again to finish the PIN exchange. `--auth-refresh` works only after the PIN exchange has saved device credentials.
 - A successful PIN exchange saves `.plexmatch_device_auth.json`, which contains the device private key needed to reuse that Plex authorized device.
 - Token renewal: run `python -m plexmatch --auth-refresh`, then replace `PLEX_TOKEN` in `.env` with the printed JWT.
 - Full reset: run `python -m plexmatch --auth-reset`; this removes local PIN/device auth state but does not edit `.env`.
-- Deleting the `PlexMatch CLI` authorized device in Plex invalidates the saved local device credentials. Run `--auth-reset --auth-pin --auth-wait 90` to authorize a new device.
+- New PIN sessions use a generated per-device Plex client identifier by default, which avoids collisions with an existing `PlexMatch CLI` authorized device when local device credentials were lost.
+- Deleting a `PlexMatch CLI` authorized device in Plex invalidates the saved local device credentials for that specific device. Run `--auth-reset --auth-pin --auth-wait 90` to authorize a replacement device.
 - PlexMatch uses nonce + signed device JWT refresh flow (`/auth/nonce` then `/auth/token`) and never prints device private keys or signed device JWTs.
 
 ## Security Notes

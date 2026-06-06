@@ -64,7 +64,7 @@ def main() -> int:
     p.add_argument("--auth-pin", action="store_true", help="Start/poll Plex PIN+JWK auth flow and print JWT.")
     p.add_argument("--auth-refresh", action="store_true", help="Refresh a Plex JWT from saved device credentials and print it.")
     p.add_argument("--auth-reset", action="store_true", help="Delete local Plex PIN and device auth state, then exit unless --auth-pin is also used.")
-    p.add_argument("--client-id", default="plexmatch-cli", help="Plex client identifier for PIN+JWK auth.")
+    p.add_argument("--client-id", help="Optional Plex client identifier for PIN+JWK auth. Defaults to a generated per-device ID.")
     p.add_argument("--auth-wait", type=int, default=0, help="Seconds to poll for PIN approval before exiting.")
     p.add_argument("--no-cache", action="store_true", help="Bypass cache reads and writes for this run.")
     p.add_argument("--clear-cache", action="store_true", help="Delete local cache and exit.")
@@ -161,7 +161,8 @@ def main() -> int:
         if session is None:
             session = start_pin_auth(args.client_id)
             print_pin_instructions(session)
-            raise SystemExit("PIN session created. Run the same command again after approval.")
+            if args.auth_wait <= 0:
+                raise SystemExit("PIN session created. Run the same command again after approval.")
         if args.auth_wait > 0:
             deadline = time.time() + args.auth_wait
             token = None

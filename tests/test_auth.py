@@ -1,4 +1,5 @@
 import base64
+import uuid
 
 import httpx
 import pytest
@@ -37,6 +38,31 @@ def test_auth_url_contains_expected_context_fields() -> None:
     assert "context%5Bdevice%5D%5Bversion%5D=" in auth_url
     assert "context%5Bdevice%5D%5Bplatform%5D=CLI" in auth_url
     assert "context%5Bdevice%5D%5BdeviceName%5D=PlexMatch+CLI" in auth_url
+
+
+def test_start_pin_auth_generates_unique_client_identifier_by_default(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    session_file = tmp_path / ".plexmatch_pin_auth.json"
+    monkeypatch.setattr(auth, "PIN_SESSION_FILE", session_file)
+    monkeypatch.setattr(auth.uuid, "uuid4", lambda: uuid.UUID("12345678-1234-5678-1234-567812345678"))
+
+    captured: dict[str, object] = {}
+
+    def fake_post(url, json, headers, timeout):
+        captured["url"] = url
+        captured["json"] = json
+        captured["headers"] = headers
+        request = httpx.Request("POST", url)
+        return httpx.Response(200, json={"id": 1, "code": "abcdef"}, request=request)
+
+    monkeypatch.setattr(auth.httpx, "post", fake_post)
+
+    session = auth.start_pin_auth()
+
+    assert session.client_identifier == "plexmatch-cli-12345678123456781234567812345678"
+    assert captured["headers"]["X-Plex-Client-Identifier"] == session.client_identifier
+    assert session_file.exists()
 
 
 def test_exchange_pin_for_token_signs_device_jwt_with_key_id(
@@ -108,7 +134,7 @@ def test_refresh_token_from_device_auth_signs_nonce_and_calls_token_endpoint(
         captured["url"] = url
         captured["json"] = json
         request = httpx.Request("POST", url)
-        return httpx.Response(200, json={"authToken": "fresh-plex-jwt"}, request=request)
+        return httpx.Response(200, json={"auth_token": "fresh-plex-jwt"}, request=request)
 
     monkeypatch.setattr(auth.jwt, "encode", fake_encode)
     monkeypatch.setattr(auth.httpx, "get", fake_get)
@@ -128,7 +154,42 @@ def test_refresh_token_from_device_auth_signs_nonce_and_calls_token_endpoint(
     assert captured["payload"]["nonce"] == "plex-nonce"
     assert captured["payload"]["scope"] == ",".join(auth.AUTH_SCOPES)
     assert captured["url"].endswith("/auth/token")
-    assert captured["json"] == {"deviceJWT": "signed-device-jwt"}
+    assert captured["json"] == {"jwt": "signed-device-jwt"}
+
+
+def test_refresh_token_from_device_auth_falls_back_to_legacy_device_jwt_body(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {"bodies": []}
+
+    def fake_encode(payload, key, algorithm, headers):
+        return "signed-device-jwt"
+
+    def fake_get(url, headers, timeout, params=None):
+        request = httpx.Request("GET", url, params=params)
+        return httpx.Response(200, json={"nonce": "plex-nonce"}, request=request)
+
+    def fake_post(url, json, headers, timeout):
+        captured["bodies"].append(json)
+        request = httpx.Request("POST", url)
+        if json == {"jwt": "signed-device-jwt"}:
+            return httpx.Response(400, json={"error": "bad request"}, request=request)
+        return httpx.Response(200, json={"authToken": "fresh-plex-jwt"}, request=request)
+
+    monkeypatch.setattr(auth.jwt, "encode", fake_encode)
+    monkeypatch.setattr(auth.httpx, "get", fake_get)
+    monkeypatch.setattr(auth.httpx, "post", fake_post)
+
+    credentials = DeviceAuthCredentials(
+        client_identifier="plexmatch-cli",
+        private_key_b64=private_key_b64(),
+        key_id="key-1",
+        scopes=list(auth.AUTH_SCOPES),
+        created_at=1,
+    )
+
+    assert auth.refresh_token_from_device_auth(credentials) == "fresh-plex-jwt"
+    assert captured["bodies"] == [{"jwt": "signed-device-jwt"}, {"deviceJWT": "signed-device-jwt"}]
 
 
 def test_refresh_token_from_device_auth_missing_credentials_has_clear_message(

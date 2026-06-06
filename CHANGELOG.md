@@ -3,6 +3,9 @@
 All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
+- Fix `--auth-reset --auth-pin --auth-wait` so a newly created PIN session is polled in the same command after browser approval.
+- Generate a unique Plex client identifier for new PIN/JWK auth sessions to avoid collisions with existing authorized devices when local credentials are missing.
+- Align `--auth-refresh` with Plex's current `/auth/token` request and response fields.
 - Add persistent Plex device auth credentials and `--auth-refresh` for renewing JWTs without browser reapproval.
 - Add `--auth-reset` to clear local PIN/device auth state without editing `.env`.
 - Let cache refresh commands and the scheduler recover from rejected Plex tokens through saved device credentials when available.
