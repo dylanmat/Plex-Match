@@ -3,6 +3,8 @@
 All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
+- Pin direct Python dependencies, including FastAPI/Starlette/httpx, so Docker test runs do not drift into warning-producing dependency combinations.
+- Move pytest's cache directory under ignored `tmp/` to keep test output free of cache-path warnings.
 - Add Dockerfile, Compose services, and a PowerShell Docker test helper for containerized web, scheduler, CLI, and verification workflows.
 - Add Docker-friendly auth state path environment variables so container PIN/device auth files can persist under the mounted `.plexmatch/` directory.
 - Document Docker Desktop and remote LAN Docker deployment details, including `localhost` caveats and trusted-network exposure.
