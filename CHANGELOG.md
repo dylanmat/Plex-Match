@@ -3,6 +3,9 @@
 All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
+- Add Dockerfile, Compose services, and a PowerShell Docker test helper for containerized web, scheduler, CLI, and verification workflows.
+- Add Docker-friendly auth state path environment variables so container PIN/device auth files can persist under the mounted `.plexmatch/` directory.
+- Document Docker Desktop and remote LAN Docker deployment details, including `localhost` caveats and trusted-network exposure.
 - Add expired-token-only local web UI reauthorization that shows Plex approval links, updates `.env` server-side, and refreshes cache without returning token material to the browser.
 - Change successful `--auth-pin` completion to update `PLEX_TOKEN` in `.env` without printing the token, then run a one-shot cache refresh.
 - Fix `--auth-reset --auth-pin --auth-wait` so a newly created PIN session is polled in the same command after browser approval.

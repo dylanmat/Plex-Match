@@ -151,6 +151,8 @@ Minimum V1 acceptance checks:
 - Plex token loaded from local environment only.
 - Optional local Plex server availability checks through `PLEX_SERVER_URL` and `PLEX_SERVER_TOKEN`.
 - Project-local SQLite cache at `.plexmatch/cache.sqlite3` by default, overrideable with `PLEXMATCH_CACHE_PATH`.
+- Docker image entrypoint is `python -m plexmatch`; Compose exposes web, scheduler, ad hoc CLI, and test services.
+- Docker Compose stores cache plus container auth state under the mounted `.plexmatch/` directory with `PLEXMATCH_CACHE_PATH`, `PLEXMATCH_PIN_AUTH_PATH`, and `PLEXMATCH_DEVICE_AUTH_PATH`.
 - Local FastAPI web UI reads cache only for comparison data and does not expose Plex tokens.
 - Local-only web reauthorization may update `.env` and refresh cache from server-side auth code when `PLEX_TOKEN` is expired, but final tokens and device secrets must not be returned to browser clients.
 - CLI scheduler owns cache refresh and is allowed to read Plex credentials.

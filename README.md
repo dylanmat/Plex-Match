@@ -49,6 +49,32 @@ python -m plexmatch --web
 5. Compare users: `python -m plexmatch --user-a "User A" --user-b "User B"`
 6. Run checks: `ruff check . && pytest -q`
 
+## Docker Quickstart
+PlexMatch includes a Docker image and Compose services for local Docker Desktop and trusted-network deployments.
+
+```bash
+copy .env.example .env
+docker compose build
+docker compose --profile test run --rm test
+docker compose run --rm cli --list-users
+docker compose run --rm cli --user-a self --user-b "Friend Name"
+docker compose up web
+```
+
+Open `http://localhost:8000` for Docker Desktop on the same computer. From another computer on your trusted network, open `http://<docker-host-ip>:8000`.
+
+The Compose setup persists cache and Docker auth state in `.plexmatch/`, reads credentials from `.env`, and mounts `.env` so CLI auth commands can update it. Use the CLI path for Docker authorization:
+
+```bash
+docker compose run --rm cli --auth-pin --auth-wait 90
+docker compose run --rm cli --refresh-cache --all
+docker compose --profile scheduler up -d scheduler web
+```
+
+If `PLEX_SERVER_URL` points at a Plex server running on the Docker host, use `http://host.docker.internal:32400` with Docker Desktop. For a remote Docker host or a separate Plex server, use the Plex server's LAN URL, not `localhost`.
+
+Remote Docker note: bind mounts such as `.plexmatch/` and `.env` live on the Docker daemon host. If the daemon is another computer, run Compose from a project copy on that computer or configure equivalent remote paths before starting services.
+
 ## Local Availability Check
 When both `PLEX_SERVER_URL` and `PLEX_SERVER_TOKEN` are configured, PlexMatch automatically checks movie/show library sections on the local Plex server and marks comparison results as locally available, unavailable, or unknown.
 

@@ -9,6 +9,7 @@ The project maintainer owns security decisions until formal ownership is assigne
 - Store Plex tokens only in approved local mechanisms such as environment variables or `.env` files.
 - Never commit `.env` files or credentials.
 - Never commit `.plexmatch_pin_auth.json`, `.plexmatch_device_auth.json`, or other local auth artifacts.
+- Docker deployments may place PIN/device auth artifacts under `.plexmatch/` through `PLEXMATCH_PIN_AUTH_PATH` and `PLEXMATCH_DEVICE_AUTH_PATH`; those files remain restricted credential material and must not be committed.
 - Provide `.env.example` with placeholder values only.
 - Never print tokens in normal output, debug output, logs, exceptions, screenshots, or test fixtures.
 - The only print exception is `--auth-refresh`, which prints the final refreshed Plex token directly to the terminal for the user to copy into `.env`.
@@ -33,6 +34,8 @@ The project maintainer owns security decisions until formal ownership is assigne
 ## Environment and Deployment Controls
 - CLI operation is local-only.
 - The V3 web UI binds to `127.0.0.1` by default and should only be exposed deliberately in Docker or trusted local networks.
+- Docker Compose binds the web UI to `0.0.0.0` inside the container and publishes port `8000`; use this only on trusted local networks.
+- Web reauthorization remains loopback-only. For Docker containers accessed through published ports or from another computer, use CLI auth commands rather than exposing browser-initiated reauthorization.
 - Future hosted modes must receive a separate security review.
 - Keep dev/test credentials separate from any real user tokens where practical.
 - Avoid persistent storage of user watchlists in V1.

@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
 import time
 import uuid
 from dataclasses import asdict, dataclass
@@ -15,8 +16,8 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 CLIENTS_API = "https://clients.plex.tv/api/v2"
-PIN_SESSION_FILE = Path(".plexmatch_pin_auth.json")
-DEVICE_AUTH_FILE = Path(".plexmatch_device_auth.json")
+PIN_SESSION_FILE = Path(os.getenv("PLEXMATCH_PIN_AUTH_PATH", ".plexmatch_pin_auth.json"))
+DEVICE_AUTH_FILE = Path(os.getenv("PLEXMATCH_DEVICE_AUTH_PATH", ".plexmatch_device_auth.json"))
 SESSION_FORMAT_VERSION = 2
 DEVICE_AUTH_FORMAT_VERSION = 1
 CLIENT_PRODUCT = "PlexMatch"

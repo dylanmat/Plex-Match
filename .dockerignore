@@ -1,0 +1,13 @@
+.env
+.env.*
+.git
+.pytest_cache
+.ruff_cache
+.venv
+__pycache__/
+*.pyc
+.plexmatch/
+.plexmatch_pin_auth.json
+.plexmatch_device_auth.json
+Dockerfile
+docker-compose*.yml

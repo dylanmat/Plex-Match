@@ -36,6 +36,7 @@
 - Add regression tests for normalization and duplicate handling.
 - Separate integration tests from unit tests.
 - Test FastAPI endpoints with cached fixtures and no live Plex calls.
+- Docker verification should use `docker compose --profile test run --rm test` when validating container readiness.
 
 ## Documentation Standards
 - Keep `README.md` high-level.
@@ -58,3 +59,4 @@
 - Provide a clear bug report template later if the project becomes public.
 - Cache refresh jobs should update only expired entries by default and continue past individual refresh failures.
 - Scheduler token recovery should be sanitized and should not write refreshed tokens into `.env`.
+- Docker Compose services must keep cache and auth state on explicit mounts or documented volumes.

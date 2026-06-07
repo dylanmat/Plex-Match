@@ -1,0 +1,54 @@
+name: plexmatch
+
+x-plexmatch-common: &plexmatch-common
+  build:
+    context: .
+  image: plexmatch:local
+  environment:
+    PLEXMATCH_CACHE_PATH: /app/.plexmatch/cache.sqlite3
+    PLEXMATCH_PIN_AUTH_PATH: /app/.plexmatch/pin_auth.json
+    PLEXMATCH_DEVICE_AUTH_PATH: /app/.plexmatch/device_auth.json
+  volumes:
+    - ./.plexmatch:/app/.plexmatch
+    - ./.env:/app/.env
+
+services:
+  web:
+    <<: *plexmatch-common
+    env_file:
+      - .env
+    command: ["--web", "--web-host", "0.0.0.0", "--web-port", "8000"]
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/status', timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
+
+  scheduler:
+    <<: *plexmatch-common
+    env_file:
+      - .env
+    command: ["--cache-scheduler", "--scheduler-interval-minutes", "15"]
+    profiles:
+      - scheduler
+    restart: unless-stopped
+
+  cli:
+    <<: *plexmatch-common
+    env_file:
+      - .env
+    profiles:
+      - tools
+
+  test:
+    build:
+      context: .
+    image: plexmatch:local
+    entrypoint: ["sh", "-c"]
+    command: ["ruff check . && pytest -q"]
+    profiles:
+      - test

@@ -71,6 +71,17 @@ Track PlexMatch development priorities, sequencing, and delivery status.
   - CLI scheduler keeps expired cache entries refreshed while web remains cache-only.
   - Persistent Plex device auth supports token renewal without deleting the authorized device.
 
+### Docker Deployment and Test Harness
+- Goal: make PlexMatch easy to build, test, run, and schedule from Docker Desktop or a trusted LAN Docker host.
+- Status: Complete
+- Success Criteria:
+  - Docker image runs `python -m plexmatch`.
+  - Compose can start the web UI on port 8000.
+  - Compose can run ad hoc CLI commands.
+  - Compose can run scheduler refresh loops.
+  - Compose can run `ruff check .` and `pytest -q`.
+  - Cache and Docker auth state persist on a documented mount.
+
 ## Later
 
 ### V4 Metadata and Import Integrations

@@ -105,3 +105,12 @@ Use this format for each new decision:
 - Consequences: Plex users can reauthorize from the local UI after token expiry and continue cache refresh operations without copying tokens. The web app now has a narrow local-only auth control surface that requires tests for local access enforcement, expired-token gating, token non-disclosure, `.env` update behavior, and cache refresh triggering.
 - Alternatives Considered: Keep all reauthorization terminal-only, show only terminal instructions in the web UI, make the browser receive the final Plex token, or allow web-triggered Plex API refresh from general network clients.
 - Supersedes/Superseded By: None
+
+### ADR-011 - Package Docker as a Local/Trusted-Network Runtime
+- Date: 2026-06-07
+- Status: Accepted
+- Context: PlexMatch needs easy repeatable testing and deployment through local Docker Desktop and a Docker host on the user's LAN.
+- Decision: Provide a Python 3.11 Docker image and Compose services for web UI, scheduler, ad hoc CLI commands, and containerized checks. Compose binds the web UI to `0.0.0.0` inside the container for deliberate trusted-network exposure, persists cache/auth state in `.plexmatch/`, and keeps `.env` mounted for CLI-owned token updates.
+- Consequences: Docker Desktop and LAN deployments use the same image and commands. Users must remember that Docker bind mounts live on the daemon host and that `localhost` inside a container is not the Plex server host. Browser-initiated web reauthorization remains loopback-only, so Docker deployments should use CLI auth commands.
+- Alternatives Considered: Hosted service, Docker-only web reauthorization changes, named volumes without local `.env` updates, or a development-only image.
+- Supersedes/Superseded By: None

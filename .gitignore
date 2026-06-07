@@ -2,6 +2,7 @@
 .venv
 .env.*
 __pycache__/
+tmp/
 .plexmatch_pin_auth.json
 .plexmatch_device_auth.json
 .plexmatch/
