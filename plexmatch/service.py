@@ -199,6 +199,7 @@ class CachedComparisonService:
             candidate_items,
             support_counts(candidate_items, other_watchlists, media_type),
             availability,
+            len(other_watchlists),
         )
 
     def _all_other_items(self, snapshot: WebSnapshot) -> list[Item]:

@@ -694,7 +694,7 @@ APP_HTML = """
         row.className = `result ${match.source || ""}`;
         row.innerHTML = `
           <div><div class="title">${match.title}</div><div class="meta">${match.year || ""} ${match.media_type || ""}</div></div>
-          <div class="metric"><span class="score-pill">${match.score}${supportInfo(match.support_count)}</span></div>
+          <div class="metric"><span class="score-pill">${match.score}%${supportInfo(match.support_count)}</span></div>
           <div class="metric"><span class="badge ${match.source || ""}">${sourceLabel(match.source)}</span></div>
           <div class="metric">${availabilityLabel(match.available_locally)}</div>
         `;
@@ -713,7 +713,7 @@ APP_HTML = """
       });
       const data = await response.json();
       if (data.match) {
-        selectedEl.innerHTML = `<div class="title">${data.match.title}</div><div class="meta">Random ${mode} | score ${data.match.score}</div><div style="margin-top: 8px;">${availabilityLabel(data.match.available_locally)}</div>`;
+        selectedEl.innerHTML = `<div class="title">${data.match.title}</div><div class="meta">Random ${mode} | score ${data.match.score}%</div><div style="margin-top: 8px;">${availabilityLabel(data.match.available_locally)}</div>`;
       }
       setLoading(false);
     }

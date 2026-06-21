@@ -44,7 +44,7 @@ def print_matches(matches: list[Match], fmt: str, top: int | None = None) -> Non
         for m in data:
             print(
                 f"- {m.title} ({m.year or ''}) [{m.media_type or ''}] "
-                f"score={m.score} source={m.source} support={m.support_count} "
+                f"score={m.score}% source={m.source} support={m.support_count} "
                 f"local={_availability_label(m.available_locally)}"
             )
         return
@@ -56,7 +56,7 @@ def print_matches(matches: list[Match], fmt: str, top: int | None = None) -> Non
             m.title,
             str(m.year or ""),
             m.media_type or "",
-            str(m.score),
+            f"{m.score}%",
             m.source,
             str(m.support_count),
             _availability_label(m.available_locally),

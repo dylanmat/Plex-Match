@@ -3,55 +3,84 @@ from plexmatch.scoring import high_confidence_pool, pick_random_match, score_can
 
 
 def test_scoring_is_deterministic() -> None:
-    pairs = [("k1", Item("Z", 2000, "movie", None, None, None)), ("k2", Item("A", 1990, "movie", None, None, None))]
+    pairs = [
+        ("title:z:2000", Item("Z", 2000, "movie", None, None, None)),
+        ("title:a:1990", Item("A", 1990, "movie", None, None, None)),
+    ]
     scored = score_items(pairs)
     assert [m.title for m in scored] == ["A", "Z"]
-    assert all(m.score == 100 for m in scored)
+    assert all(m.score == 67 for m in scored)
 
 
 def test_candidate_scoring_prioritizes_overlaps_then_recommendations() -> None:
     scored = score_candidates(
         [
-            ("k1", Item("Only A", 2000, "movie", None, None, None), "user_a"),
-            ("k2", Item("Both", 2001, "movie", None, None, None), "both"),
-            ("k3", Item("Only B", 2002, "movie", None, None, None), "user_b"),
+            ("title:only-a:2000", Item("Only A", 2000, "movie", None, None, None), "user_a"),
+            ("title:both:2001", Item("Both", 2001, "movie", None, None, None), "both"),
+            ("title:only-b:2002", Item("Only B", 2002, "movie", None, None, None), "user_b"),
         ]
     )
 
     assert [(m.title, m.score, m.source) for m in scored] == [
-        ("Both", 100, "both"),
-        ("Only A", 10, "user_a"),
-        ("Only B", 10, "user_b"),
+        ("Both", 67, "both"),
+        ("Only A", 37, "user_a"),
+        ("Only B", 37, "user_b"),
     ]
 
 
-def test_candidate_scoring_adds_support_bonus() -> None:
+def test_candidate_scoring_normalizes_support_bonus() -> None:
     scored = score_candidates(
         [
-            ("k1", Item("Both", 2001, "movie", None, None, None), "both"),
-            ("k2", Item("Only B", 2002, "movie", None, None, None), "user_b"),
+            ("title:both:2001", Item("Both", 2001, "movie", None, None, None), "both"),
+            ("title:only-b:2002", Item("Only B", 2002, "movie", None, None, None), "user_b"),
         ],
-        {"k1": 2, "k2": 1},
+        {"title:both:2001": 2, "title:only-b:2002": 1},
+        support_denominator=2,
     )
 
     assert [(m.title, m.score, m.support_count) for m in scored] == [
-        ("Both", 110, 2),
-        ("Only B", 15, 1),
+        ("Both", 87, 2),
+        ("Only B", 47, 1),
     ]
 
 
-def test_candidate_scoring_adds_local_availability_bonus() -> None:
+def test_candidate_scoring_applies_local_availability_points() -> None:
     scored = score_candidates(
         [
-            ("k1", Item("Both", 2001, "movie", None, None, None), "both"),
-            ("k2", Item("Only B", 2002, "movie", None, None, None), "user_b"),
+            ("title:both:2001", Item("Both", 2001, "movie", None, None, None), "both"),
+            ("title:only-b:2002", Item("Only B", 2002, "movie", None, None, None), "user_b"),
         ],
-        availability={"k1": True, "k2": False},
+        availability={"title:both:2001": True, "title:only-b:2002": False},
     )
 
     assert [(m.title, m.score, m.available_locally) for m in scored] == [
-        ("Both", 110, True),
-        ("Only B", 10, False),
+        ("Both", 77, True),
+        ("Only B", 27, False),
+    ]
+
+
+def test_candidate_scoring_treats_unknown_local_availability_as_neutral() -> None:
+    scored = score_candidates(
+        [("imdb:tt0078748", Item("Alien", 1979, "movie", None, "tt0078748", None), "both")]
+    )
+
+    assert scored[0].score == 70
+    assert scored[0].available_locally is None
+
+
+def test_candidate_scoring_uses_identity_confidence() -> None:
+    scored = score_candidates(
+        [
+            ("imdb:tt0078748", Item("Stable", 1979, "movie", None, "tt0078748", None), "both"),
+            ("title:title-year:1979", Item("Title Year", 1979, "movie", None, None, None), "both"),
+            ("title:title-only:0", Item("Title Only", None, "movie", None, None, None), "both"),
+        ]
+    )
+
+    assert [(match.title, match.score) for match in scored] == [
+        ("Stable", 70),
+        ("Title Year", 67),
+        ("Title Only", 64),
     ]
 
 

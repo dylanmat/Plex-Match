@@ -260,6 +260,7 @@ def main() -> int:
             candidate_items,
             support_counts(candidate_items, other_watchlists, normalized_type),
             availability,
+            len(other_watchlists),
         )
         if not found:
             raise SystemExit("No watchlist items found for the selected users and type.")

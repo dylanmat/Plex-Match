@@ -6,7 +6,7 @@ PlexMatch is a Python tool for comparing Plex users' watchlists and selecting so
 It uses a Plex community/GraphQL approach, normalizes entries by stable IDs, finds overlap, scores matches, and can randomly pick one title. The CLI populates a local cache, and the local web UI reads from that cache for fast movie-night browsing.
 
 ## Version
-Current version: `0.3.0`
+Current version: `0.4.0`
 
 ## Features
 - PIN + JWK auth bootstrap flow (`--auth-pin`) and saved-device refresh (`--auth-refresh`) for Plex JWTs
@@ -15,7 +15,7 @@ Current version: `0.3.0`
 - List accessible users/friends (`--list-users`)
 - Fetch watchlists for two selected users
 - Normalize by GUID, IMDb, TMDb, then title/year fallback
-- Match overlaps and deterministic scoring
+- Match overlaps and deterministic 0-100% scoring
 - Diagnostic comparison output lists all filtered watchlist items with source labels (`both`, `user_a`, `user_b`)
 - Output as table or JSON
 - Filters and selection flags: `--type`, `--top`, `--random high`, `--random low`
@@ -87,7 +87,17 @@ PLEX_SERVER_TOKEN=your_local_server_token_here
 python -m plexmatch --user-a "Dylan" --user-b "Joy" --type movies
 ```
 
-Available local items receive a +10 score bonus. If the local server is unreachable or rejects the token, PlexMatch prints a sanitized warning and continues with local availability marked unknown.
+Local availability contributes to the 0-100% match score. Available items receive the full local availability component, unavailable items receive none, and unknown availability is treated as neutral. If the local server is unreachable or rejects the token, PlexMatch prints a sanitized warning and continues with local availability marked unknown.
+
+## Match Scoring
+PlexMatch scores both true overlaps and one-sided watchlist recommendations on a balanced 0-100% scale:
+
+- Watchlist alignment: up to 50 points for titles in both selected users' watchlists, or 20 points for one-sided recommendations.
+- Wider group support: up to 20 points based on how many other cached users also have the title.
+- Local availability: up to 20 points when the title is available on the configured local Plex server; unknown availability is neutral.
+- Match confidence: up to 10 points based on whether the match uses stable IDs or title/year fallback.
+
+Scores are capped at 100%. Higher scores represent better movie-night candidates, while lower-scored one-sided items remain visible as recommendations.
 
 ## Local Cache
 PlexMatch caches normalized users, watchlists, and local library items in `.plexmatch/cache.sqlite3` by default. The cache is self-contained for future Docker use and `.plexmatch/` is ignored by git.
@@ -132,7 +142,7 @@ python -m plexmatch --user-a self --user-b "Friend Name"
 python -m plexmatch --web
 ```
 
-Open `http://127.0.0.1:8000`. The default view compares `self` against cached users, ranks users by total scored matches, and supports media filters plus low-confidence and high-confidence random picks. Web results are memoized in memory and refresh automatically when the SQLite cache file changes. If cache entries expire, stale results remain visible with a warning while the CLI scheduler refreshes them. Use `--web-host` and `--web-port` when running in Docker or another local environment.
+Open `http://127.0.0.1:8000`. The default view compares `self` against cached users, ranks users by total scored match percentages, and supports media filters plus low-confidence and high-confidence random picks. Web results are memoized in memory and refresh automatically when the SQLite cache file changes. If cache entries expire, stale results remain visible with a warning while the CLI scheduler refreshes them. Use `--web-host` and `--web-port` when running in Docker or another local environment.
 
 When `PLEX_TOKEN` is an expired JWT, the local web UI shows a `Reauthorize` action for loopback browser sessions. It opens a Plex approval URL, then the local server completes PIN/JWK auth, updates `PLEX_TOKEN` in `.env`, and refreshes cache without returning the final token to the browser.
 
@@ -161,7 +171,7 @@ When `PLEX_TOKEN` is an expired JWT, the local web UI shows a `Reauthorize` acti
 
 
 ## Changelog
-- Unreleased: Add saved Plex device auth refresh and CLI-owned cache scheduler.
+- 0.4.0: Add saved Plex device auth refresh, CLI-owned cache scheduler, Docker deployment support, web reauthorization, and balanced 0-100% scoring.
 - 0.3.0: Add cache-only FastAPI web UI for ranked self comparisons and random picks.
 - 0.2.0: Add project-local SQLite caching for users, watchlists, and local library items.
 - 0.1.32: Add optional local Plex server availability enrichment and scoring/output support.

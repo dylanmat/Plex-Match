@@ -69,7 +69,7 @@ Finds overlaps, resolves duplicates, and produces match records.
 Suggested module: `plexmatch/matching.py`
 
 ### Scoring Layer
-Scores matches with simple deterministic V1 rules.
+Scores matches with deterministic capped 0-100% rules.
 
 Suggested module: `plexmatch/scoring.py`
 
@@ -130,12 +130,14 @@ Suggested module: `plexmatch/output.py`
 - Required handling: pagination, missing fields, changed field names, empty responses, HTTP failures, and access-denied responses.
 - GraphQL query text should be centralized and versioned in code or a `queries/` directory.
 
-## V1 Scoring
-- Base 100 points if the title appears in both watchlists.
-- +10 if available on a configured local Plex server/library.
-- +5 if IMDb/TMDb/Plex rating is >= 7.0, when available.
-- -10 if either user has already watched it, where detectable.
-- +5 if recently added, where detectable.
+## Match Scoring
+PlexMatch scores true overlaps and one-sided recommendations on a capped 0-100% scale using only currently collected data:
+- Watchlist alignment: 50 points when both selected users have the title, or 20 points when only one selected user has it.
+- Wider group support: up to 20 points, calculated as `round(20 * support_count / other_watchlist_count)`.
+- Local availability: 20 points when available locally, 0 when unavailable, and 10 neutral points when local availability is unknown or not configured.
+- Match confidence: 10 points for GUID/IMDb/TMDb keys, 7 for title plus year fallback, and 4 for title-only or missing-year fallback.
+
+Scores are capped at 100%. The public `Match.score` field remains an integer, now interpreted as a percentage.
 
 ## Evaluation and Quality Gates
 Minimum V1 acceptance checks:

@@ -3,6 +3,13 @@
 All notable changes to PlexMatch should be documented here.
 
 ## [Unreleased]
+
+No unreleased changes.
+
+## [0.4.0] - 2026-06-21
+- Rework match scoring as a capped 0-100% rating using watchlist alignment, normalized wider support, local availability, and match identity confidence.
+- Display scores as percentages in table/plain/web output while keeping the JSON `score` field numeric.
+- Document future scoring data collection opportunities in `ROADMAP.md`.
 - Pin direct Python dependencies, including FastAPI/Starlette/httpx, so Docker test runs do not drift into warning-producing dependency combinations.
 - Move pytest's cache directory under ignored `tmp/` to keep test output free of cache-path warnings.
 - Add Dockerfile, Compose services, and a PowerShell Docker test helper for containerized web, scheduler, CLI, and verification workflows.

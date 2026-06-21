@@ -21,7 +21,7 @@ DEVICE_AUTH_FILE = Path(os.getenv("PLEXMATCH_DEVICE_AUTH_PATH", ".plexmatch_devi
 SESSION_FORMAT_VERSION = 2
 DEVICE_AUTH_FORMAT_VERSION = 1
 CLIENT_PRODUCT = "PlexMatch"
-CLIENT_VERSION = "0.3.0"
+CLIENT_VERSION = "0.4.0"
 DEFAULT_CLIENT_ID_PREFIX = "plexmatch-cli"
 AUTH_SCOPES = ("username", "email", "friendly_name", "restricted", "anonymous", "joinedAt")
 
